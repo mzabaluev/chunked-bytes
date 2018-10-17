@@ -14,28 +14,28 @@ pub enum DecodeError {
 #[derive(Debug)]
 pub struct RecoveryInfo {
     decoded: Option<StrChunk>,
-    error_len: Option<usize>,
+    skip_len: Option<usize>,
 }
 
 impl DecodeError {
     pub fn incomplete(decoded: Option<StrChunk>) -> Self {
         DecodeError::Encoding(RecoveryInfo {
             decoded,
-            error_len: None,
+            skip_len: None,
         })
     }
 
-    pub fn with_recovery(decoded: Option<StrChunk>, error_len: usize) -> Self {
+    pub fn with_recovery(decoded: Option<StrChunk>, skip_len: usize) -> Self {
         DecodeError::Encoding(RecoveryInfo {
             decoded,
-            error_len: Some(error_len),
+            skip_len: Some(skip_len),
         })
     }
 }
 
 impl RecoveryInfo {
-    pub fn error_len(&self) -> Option<usize> {
-        self.error_len
+    pub fn skip_len(&self) -> Option<usize> {
+        self.skip_len
     }
 
     pub fn into_decoded(self) -> Option<StrChunk> {
@@ -46,14 +46,12 @@ impl RecoveryInfo {
 impl Display for DecodeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            DecodeError::Encoding(RecoveryInfo {
-                error_len: Some(_), ..
-            }) => write!(f, "invalid encoding sequence in input"),
-
-            DecodeError::Encoding(RecoveryInfo {
-                error_len: None, ..
-            }) => write!(f, "incomplete encoding input"),
-
+            DecodeError::Encoding(RecoveryInfo { skip_len, .. }) => {
+                match skip_len {
+                    Some(_) => write!(f, "invalid encoding sequence in input"),
+                    None => write!(f, "incomplete encoding input"),
+                }
+            }
             DecodeError::Io(io_err) => write!(f, "{}", io_err),
         }
     }
@@ -77,8 +75,8 @@ impl From<io::Error> for DecodeError {
 
 impl From<ExtractUtf8Error> for DecodeError {
     fn from(src: ExtractUtf8Error) -> DecodeError {
-        let error_len = src.error_len();
+        let skip_len = src.error_len();
         let decoded = src.into_extracted();
-        DecodeError::with_recovery(decoded, error_len)
+        DecodeError::with_recovery(decoded, skip_len)
     }
 }
