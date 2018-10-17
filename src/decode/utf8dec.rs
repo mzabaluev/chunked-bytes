@@ -14,7 +14,8 @@ impl Decoder for Utf8Decoder {
         &mut self,
         src: &mut BytesMut,
     ) -> Result<Option<StrChunk>, Self::Error> {
-        StrChunk::extract_utf8(src).map_err(|e| e.into())
+        let decoded = StrChunk::extract_utf8(src)?;
+        Ok(decoded)
     }
 
     fn decode_eof(
