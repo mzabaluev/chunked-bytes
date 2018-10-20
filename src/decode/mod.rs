@@ -1,3 +1,6 @@
+mod decoder;
+pub use self::decoder::TextDecoder;
+
 mod error;
 pub use self::error::{DecodeError, RecoveryInfo};
 

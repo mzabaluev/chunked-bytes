@@ -1,8 +1,7 @@
-use super::DecodeError;
+use super::{DecodeError, TextDecoder};
 
 use bytes::{ByteOrder, BytesMut};
 use strchunk::{StrChunk, StrChunkMut};
-use tokio_codec::Decoder;
 
 use std::{char, marker::PhantomData};
 
@@ -59,13 +58,10 @@ fn decode_step(lead_surrogate: Option<u16>, code_unit: u16) -> StepResult {
     }
 }
 
-impl<Bo> Decoder for Utf16Decoder<Bo>
+impl<Bo> TextDecoder for Utf16Decoder<Bo>
 where
     Bo: ByteOrder,
 {
-    type Item = StrChunk;
-    type Error = DecodeError;
-
     fn decode(
         &mut self,
         src: &mut BytesMut,
@@ -103,17 +99,5 @@ where
             src.advance(2);
         }
         Ok(self.state.commit(lead_surrogate))
-    }
-
-    fn decode_eof(
-        &mut self,
-        src: &mut BytesMut,
-    ) -> Result<Option<StrChunk>, DecodeError> {
-        let decoded = self.decode(src)?;
-        if src.is_empty() {
-            Ok(decoded)
-        } else {
-            Err(DecodeError::incomplete(decoded))
-        }
     }
 }
