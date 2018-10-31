@@ -1,7 +1,7 @@
 use super::{DecodeError, TextDecoder};
 
 use bytes::{ByteOrder, BytesMut};
-use strchunk::{StrChunk, StrChunkMut};
+use strchunk::{split::Take, StrChunk, StrChunkMut};
 
 use std::{char, marker::PhantomData};
 
@@ -21,7 +21,7 @@ impl DecoderState {
         if self.buf.is_empty() {
             None
         } else {
-            Some(self.buf.take().freeze())
+            Some(self.buf.take(..).freeze())
         }
     }
 }
