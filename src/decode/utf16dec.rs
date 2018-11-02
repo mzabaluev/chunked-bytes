@@ -21,7 +21,7 @@ impl DecoderState {
         if self.buf.is_empty() {
             None
         } else {
-            Some(self.buf.take(..).freeze())
+            Some(self.buf.take_range(..).freeze())
         }
     }
 }
