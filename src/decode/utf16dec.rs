@@ -15,46 +15,61 @@ struct DecoderState {
     buf: StrChunkMut,
 }
 
+enum StepOutcome {
+    Continue,
+    Break,
+}
+
 impl DecoderState {
-    fn commit(&mut self, lead_surrogate: Option<u16>) -> Option<StrChunk> {
-        self.lead_surrogate = lead_surrogate;
+    fn take_decoded(&mut self) -> Option<StrChunk> {
         if self.buf.is_empty() {
             None
         } else {
             Some(self.buf.take_range(..).freeze())
         }
     }
-}
 
-enum StepResult {
-    Char(char),
-    HighSurrogate(u16),
-    Error(Recovery),
-}
+    fn decode_step(
+        &mut self,
+        code_unit: u16,
+    ) -> Result<StepOutcome, DecodeError> {
+        use self::StepOutcome::*;
 
-enum Recovery {
-    Keep,
-    Skip,
-}
-
-fn decode_step(lead_surrogate: Option<u16>, code_unit: u16) -> StepResult {
-    match lead_surrogate {
-        None => match code_unit {
-            0xD800..=0xDBFF => StepResult::HighSurrogate(code_unit),
-            0xDC00..=0xDFFF => StepResult::Error(Recovery::Skip),
-            _ => StepResult::Char(unsafe {
-                char::from_u32_unchecked(code_unit.into())
-            }),
-        },
-        Some(hs) => match code_unit {
-            0xDC00..=0xDFFF => {
-                let cp: u32 = 0x10000
-                    + (((hs & 0x3FF) as u32) << 10)
-                    + ((code_unit & 0x3FF) as u32);
-                StepResult::Char(unsafe { char::from_u32_unchecked(cp) })
-            }
-            _ => StepResult::Error(Recovery::Keep),
-        },
+        let lead_surrogate = self.lead_surrogate.take();
+        let c = match lead_surrogate {
+            None => match code_unit {
+                0xD800..=0xDBFF => {
+                    self.lead_surrogate = Some(code_unit);
+                    return Ok(Continue);
+                }
+                0xDC00..=0xDFFF => {
+                    let decoded = self.take_decoded();
+                    return Err(DecodeError::with_recovery(decoded, 2));
+                }
+                _ => unsafe { char::from_u32_unchecked(code_unit as u32) },
+            },
+            Some(hs) => match code_unit {
+                0xDC00..=0xDFFF => {
+                    let cp = 0x10000
+                        + (((hs & 0x3FF) as u32) << 10)
+                        + ((code_unit & 0x3FF) as u32);
+                    unsafe { char::from_u32_unchecked(cp) }
+                }
+                _ => {
+                    let decoded = self.take_decoded();
+                    return Err(DecodeError::with_recovery(decoded, 0));
+                }
+            },
+        };
+        if self.buf.remaining_mut() < c.len_utf8() {
+            // We can decode a complete character with the input
+            // ahead, but there is no space for it in the output.
+            // Leave decoding in this state, to repeat this step next time.
+            self.lead_surrogate = lead_surrogate;
+            return Ok(Break);
+        }
+        self.buf.put_char(c);
+        Ok(Continue)
     }
 }
 
@@ -66,38 +81,27 @@ where
         &mut self,
         src: &mut BytesMut,
     ) -> Result<Option<StrChunk>, DecodeError> {
-        debug_assert!({
-            let buf = &self.state.buf;
-            buf.is_empty() && buf.capacity() >= 4
-        });
-        let mut lead_surrogate = self.state.lead_surrogate;
+        use self::StepOutcome::*;
+
+        debug_assert!(
+            {
+                let buf = &self.state.buf;
+                buf.is_empty() && buf.capacity() >= 4
+            },
+            "the output buffer is non-empty or too small"
+        );
+
         while src.len() >= 2 {
-            let step_res = decode_step(lead_surrogate, Bo::read_u16(src));
-            lead_surrogate = match step_res {
-                StepResult::Char(c) => {
-                    let buf = &mut self.state.buf;
-                    if buf.remaining_mut() < c.len_utf8() {
-                        // We can decode a complete character with the input
-                        // ahead, but there is no space for it in the output.
-                        // Leave decoding in this state, to repeat the last
-                        // step next time.
-                        break;
-                    }
-                    buf.put_char(c);
-                    None
+            let code_unit = Bo::read_u16(src);
+            match self.state.decode_step(code_unit)? {
+                Break => {
+                    break;
                 }
-                StepResult::HighSurrogate(hs) => Some(hs),
-                StepResult::Error(recovery) => {
-                    let decoded = self.state.commit(None);
-                    let skip_len = match recovery {
-                        Recovery::Keep => 0,
-                        Recovery::Skip => 2,
-                    };
-                    return Err(DecodeError::with_recovery(decoded, skip_len));
+                Continue => {
+                    src.advance(2);
                 }
-            };
-            src.advance(2);
+            }
         }
-        Ok(self.state.commit(lead_surrogate))
+        Ok(self.state.take_decoded())
     }
 }
