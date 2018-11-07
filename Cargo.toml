@@ -6,3 +6,5 @@ authors = ["Mikhail Zabaluev <mikhail.zabaluev@gmail.com>"]
 [dependencies]
 strchunk = { git = "https://github.com/mzabaluev/strchunk.git" }
 bytes = "0.4"
+futures = "0.1"
+tokio-io = "0.1"
