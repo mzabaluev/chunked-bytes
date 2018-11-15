@@ -22,10 +22,10 @@ where
         output.reserve(4);
 
         let encoded_to = {
+            let mut utf16_buf = [0u16; 2];
             let mut iter = input.char_indices();
             loop {
                 if let Some((i, c)) = iter.next() {
-                    let mut utf16_buf = [0u16; 2];
                     let utf16_seq = c.encode_utf16(&mut utf16_buf);
                     let bytes_len = utf16_seq.len() * 2;
                     if output.remaining_mut() < bytes_len {
