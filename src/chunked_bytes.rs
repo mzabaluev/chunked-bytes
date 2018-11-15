@@ -1,4 +1,4 @@
-use bytes::{BufMut, Bytes, BytesMut};
+use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 use std::{
     cmp::{max, min},
@@ -55,5 +55,40 @@ impl BufMut for ChunkedBytes {
 
     unsafe fn bytes_mut(&mut self) -> &mut [u8] {
         self.current.bytes_mut()
+    }
+}
+
+impl Buf for ChunkedBytes {
+    fn remaining(&self) -> usize {
+        self.chunks.iter().fold(0, |acc, c| acc + c.len()) + self.current.len()
+    }
+
+    fn bytes(&self) -> &[u8] {
+        if self.chunks.is_empty() {
+            &self.current[..]
+        } else {
+            &self.chunks[0]
+        }
+    }
+
+    fn advance(&mut self, mut cnt: usize) {
+        loop {
+            let chunk_len = match self.chunks.front_mut() {
+                None => {
+                    self.current.advance(cnt);
+                    return;
+                }
+                Some(bytes) => {
+                    let len = bytes.len();
+                    if cnt < len {
+                        bytes.advance(cnt);
+                        return;
+                    }
+                    len
+                }
+            };
+            cnt -= chunk_len;
+            self.chunks.pop_front();
+        }
     }
 }
