@@ -1,4 +1,5 @@
 use bytes::{Buf, BufMut, Bytes, BytesMut};
+use iovec::IoVec;
 
 use std::{
     cmp::{max, min},
@@ -89,6 +90,22 @@ impl Buf for ChunkedBytes {
             };
             cnt -= chunk_len;
             self.chunks.pop_front();
+        }
+    }
+
+    fn bytes_vec<'a>(&'a self, dst: &mut [&'a IoVec]) -> usize {
+        let n = dst
+            .iter_mut()
+            .zip(self.chunks.iter())
+            .map(|(iovec, chunk)| {
+                *iovec = (&chunk[..]).into();
+            }).count();
+
+        if n < dst.len() && !self.current.is_empty() {
+            dst[n] = (&self.current[..]).into();
+            n + 1
+        } else {
+            n
         }
     }
 }
