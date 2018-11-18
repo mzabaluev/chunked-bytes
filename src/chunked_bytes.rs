@@ -94,12 +94,14 @@ impl Buf for ChunkedBytes {
     }
 
     fn bytes_vec<'a>(&'a self, dst: &mut [&'a IoVec]) -> usize {
-        let n = dst
-            .iter_mut()
-            .zip(self.chunks.iter())
-            .map(|(iovec, chunk)| {
+        let n = {
+            let zipped = dst.iter_mut().zip(self.chunks.iter());
+            let len = zipped.len();
+            for (iovec, chunk) in zipped {
                 *iovec = (&chunk[..]).into();
-            }).count();
+            }
+            len
+        };
 
         if n < dst.len() && !self.current.is_empty() {
             dst[n] = (&self.current[..]).into();
