@@ -11,5 +11,7 @@ pub mod decode;
 pub mod encode;
 
 mod read;
+mod write;
 
 pub use read::TextReader;
+pub use write::TextWriter;
