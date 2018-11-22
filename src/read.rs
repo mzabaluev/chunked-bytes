@@ -42,23 +42,24 @@ where
     type Error = DecodeError;
 
     fn poll(&mut self) -> Poll<Option<StrChunk>, DecodeError> {
-        if self.eof {
-            return self.poll_eof();
-        }
+        loop {
+            if self.eof {
+                return self.poll_eof();
+            }
 
-        // Guard against spurious EOFs by reserving at least one byte to read
-        self.buf.reserve(1);
+            // Guard against spurious EOFs by reserving at least one byte
+            // to read.
+            self.buf.reserve(1);
 
-        let nread = try_ready!(self.reader.read_buf(&mut self.buf));
+            let nread = try_ready!(self.reader.read_buf(&mut self.buf));
 
-        if nread == 0 {
-            self.eof = true;
-            self.poll_eof()
-        } else {
-            let decoded = self.decoder.decode(&mut self.buf)?;
-            match decoded {
-                None => Ok(Async::NotReady),
-                Some(_) => Ok(Async::Ready(decoded)),
+            if nread == 0 {
+                self.eof = true;
+            } else {
+                let decoded = self.decoder.decode(&mut self.buf)?;
+                if let Some(_) = decoded {
+                    return Ok(Async::Ready(decoded));
+                }
             }
         }
     }
