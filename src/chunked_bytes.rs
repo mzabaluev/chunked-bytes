@@ -13,6 +13,14 @@ pub struct ChunkedBytes {
 }
 
 impl ChunkedBytes {
+    pub fn chunk_size(&self) -> usize {
+        self.chunk_size
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.chunks.is_empty() && self.current.is_empty()
+    }
+
     pub fn flush(&mut self) {
         let bytes = self.current.take();
         if !bytes.is_empty() {
