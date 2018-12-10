@@ -1,6 +1,6 @@
 use super::{EncodeError, TextEncoder};
 use bytes::{BufMut, ByteOrder};
-use chunked_bytes::ChunkedBytes;
+use crate::chunked_bytes::ChunkedBytes;
 use strchunk::{split::Take, StrChunk};
 
 use std::marker::PhantomData;

@@ -13,5 +13,5 @@ pub mod encode;
 mod read;
 mod write;
 
-pub use read::TextReader;
-pub use write::TextWriter;
+pub use crate::read::TextReader;
+pub use crate::write::TextWriter;

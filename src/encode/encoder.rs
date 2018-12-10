@@ -1,5 +1,5 @@
 use super::EncodeError;
-use chunked_bytes::ChunkedBytes;
+use crate::chunked_bytes::ChunkedBytes;
 
 use strchunk::StrChunk;
 

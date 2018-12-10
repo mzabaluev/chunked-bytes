@@ -1,5 +1,5 @@
 use super::{EncodeError, TextEncoder};
-use chunked_bytes::ChunkedBytes;
+use crate::chunked_bytes::ChunkedBytes;
 use strchunk::{split::Take, StrChunk};
 
 pub struct Utf8Encoder {}

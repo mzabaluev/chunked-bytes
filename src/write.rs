@@ -1,5 +1,5 @@
-use chunked_bytes::ChunkedBytes;
-use encode::{EncodeError, TextEncoder};
+use crate::chunked_bytes::ChunkedBytes;
+use crate::encode::{EncodeError, TextEncoder};
 
 use bytes::Buf;
 use futures::prelude::*;
