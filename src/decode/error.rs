@@ -13,19 +13,19 @@ pub enum DecodeError {
 
 #[derive(Debug)]
 pub struct RecoveryInfo {
-    decoded: Option<StrChunk>,
+    decoded: StrChunk,
     skip_len: Option<usize>,
 }
 
 impl DecodeError {
-    pub fn incomplete(decoded: Option<StrChunk>) -> Self {
+    pub fn incomplete(decoded: StrChunk) -> Self {
         DecodeError::Encoding(RecoveryInfo {
             decoded,
             skip_len: None,
         })
     }
 
-    pub fn with_recovery(decoded: Option<StrChunk>, skip_len: usize) -> Self {
+    pub fn with_recovery(decoded: StrChunk, skip_len: usize) -> Self {
         DecodeError::Encoding(RecoveryInfo {
             decoded,
             skip_len: Some(skip_len),
@@ -38,7 +38,7 @@ impl RecoveryInfo {
         self.skip_len
     }
 
-    pub fn into_decoded(self) -> Option<StrChunk> {
+    pub fn into_decoded(self) -> StrChunk {
         self.decoded
     }
 }

@@ -21,12 +21,8 @@ enum StepOutcome {
 }
 
 impl DecoderState {
-    fn take_decoded(&mut self) -> Option<StrChunk> {
-        if self.buf.is_empty() {
-            None
-        } else {
-            Some(self.buf.take_range(..).freeze())
-        }
+    fn take_decoded(&mut self) -> StrChunk {
+        self.buf.take_range(..).freeze()
     }
 
     fn decode_step(
@@ -102,6 +98,11 @@ where
                 }
             }
         }
-        Ok(self.state.take_decoded())
+        let decoded = self.state.take_decoded();
+        if decoded.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(decoded))
+        }
     }
 }

@@ -17,6 +17,10 @@ impl TextDecoder for Utf8Decoder {
         src: &mut BytesMut,
     ) -> Result<Option<StrChunk>, DecodeError> {
         let decoded = StrChunk::extract_utf8(src)?;
-        Ok(decoded)
+        if decoded.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(decoded))
+        }
     }
 }
