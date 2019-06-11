@@ -17,7 +17,7 @@ pub trait TextDecoder {
         if src.is_empty() {
             Ok(decoded)
         } else {
-            Err(DecodeError::incomplete(decoded.unwrap_or_default()))
+            Err(DecodeError::incomplete_input(decoded))
         }
     }
 }

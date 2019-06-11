@@ -18,7 +18,7 @@ pub struct RecoveryInfo {
 }
 
 impl DecodeError {
-    pub fn incomplete(decoded: StrChunk) -> Self {
+    pub fn incomplete_input(decoded: StrChunk) -> Self {
         DecodeError::Encoding(RecoveryInfo {
             decoded,
             skip_len: None,
@@ -49,20 +49,19 @@ impl Display for DecodeError {
             DecodeError::Encoding(RecoveryInfo { skip_len, .. }) => {
                 match skip_len {
                     Some(_) => write!(f, "invalid encoding sequence in input"),
-                    None => write!(f, "incomplete encoding input"),
+                    None => write!(f, "incomplete encoding sequence in input"),
                 }
             }
-            DecodeError::Io(io_err) => write!(f, "{}", io_err),
+            DecodeError::Io(io_err) => Display::fmt(io_err, f),
         }
     }
 }
 
 impl Error for DecodeError {
-    fn cause(&self) -> Option<&Error> {
-        if let DecodeError::Io(ref io_err) = *self {
-            Some(io_err)
-        } else {
-            None
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            DecodeError::Encoding(_) => None,
+            DecodeError::Io(io_err) => Some(io_err),
         }
     }
 }
