@@ -73,18 +73,16 @@ impl<Bo> TextDecoder for Utf16Decoder<Bo>
 where
     Bo: ByteOrder,
 {
-    fn decode(
-        &mut self,
-        src: &mut BytesMut,
-    ) -> Result<StrChunk, DecodeError> {
+    fn decode(&mut self, src: &mut BytesMut) -> Result<StrChunk, DecodeError> {
         use self::StepOutcome::*;
 
         debug_assert!(
-            {
-                let buf = &self.state.buf;
-                buf.is_empty() && buf.capacity() >= 4
-            },
-            "the output buffer is non-empty or too small"
+            self.state.buf.is_empty(),
+            "the output buffer is not empty"
+        );
+        debug_assert!(
+            self.state.buf.capacity() >= 4,
+            "the output buffer is too small"
         );
 
         while src.len() >= 2 {
