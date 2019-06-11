@@ -57,8 +57,8 @@ where
                 self.eof = true;
             } else {
                 let decoded = self.decoder.decode(&mut self.buf)?;
-                if let Some(_) = decoded {
-                    return Ok(Async::Ready(decoded));
+                if !decoded.is_empty() {
+                    return Ok(Async::Ready(Some(decoded)));
                 }
             }
         }
@@ -71,6 +71,10 @@ where
 {
     fn poll_eof(&mut self) -> Poll<Option<StrChunk>, DecodeError> {
         let decoded = self.decoder.decode_eof(&mut self.buf)?;
-        Ok(Async::Ready(decoded))
+        if decoded.is_empty() {
+            Ok(Async::Ready(None))
+        } else {
+            Ok(Async::Ready(Some(decoded)))
+        }
     }
 }

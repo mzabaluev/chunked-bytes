@@ -15,12 +15,7 @@ impl TextDecoder for Utf8Decoder {
     fn decode(
         &mut self,
         src: &mut BytesMut,
-    ) -> Result<Option<StrChunk>, DecodeError> {
-        let decoded = StrChunk::extract_utf8(src)?;
-        if decoded.is_empty() {
-            Ok(None)
-        } else {
-            Ok(Some(decoded))
-        }
+    ) -> Result<StrChunk, DecodeError> {
+        StrChunk::extract_utf8(src).map_err(|e| e.into())
     }
 }

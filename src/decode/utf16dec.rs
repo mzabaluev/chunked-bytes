@@ -76,7 +76,7 @@ where
     fn decode(
         &mut self,
         src: &mut BytesMut,
-    ) -> Result<Option<StrChunk>, DecodeError> {
+    ) -> Result<StrChunk, DecodeError> {
         use self::StepOutcome::*;
 
         debug_assert!(
@@ -98,11 +98,6 @@ where
                 }
             }
         }
-        let decoded = self.state.take_decoded();
-        if decoded.is_empty() {
-            Ok(None)
-        } else {
-            Ok(Some(decoded))
-        }
+        Ok(self.state.take_decoded())
     }
 }

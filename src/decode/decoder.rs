@@ -7,12 +7,12 @@ pub trait TextDecoder {
     fn decode(
         &mut self,
         src: &mut BytesMut,
-    ) -> Result<Option<StrChunk>, DecodeError>;
+    ) -> Result<StrChunk, DecodeError>;
 
     fn decode_eof(
         &mut self,
         src: &mut BytesMut,
-    ) -> Result<Option<StrChunk>, DecodeError> {
+    ) -> Result<StrChunk, DecodeError> {
         let decoded = self.decode(src)?;
         if src.is_empty() {
             Ok(decoded)
