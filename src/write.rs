@@ -12,10 +12,33 @@ pub struct TextWriter<T, E> {
     state: WriterState,
 }
 
+#[derive(Default)]
 struct WriterState {
     remaining_str: StrChunk,
     encoded_buf: ChunkedBytes,
     eof_encoded: bool,
+}
+
+impl<T, E> TextWriter<T, E> {
+    pub fn new(writer: T, encoder: E) -> Self {
+        TextWriter {
+            writer,
+            encoder,
+            state: WriterState::default(),
+        }
+    }
+
+    pub fn with_chunk_size(writer: T, encoder: E, chunk_size: usize) -> Self {
+        TextWriter {
+            writer,
+            encoder,
+            state: WriterState {
+                remaining_str: StrChunk::new(),
+                encoded_buf: ChunkedBytes::with_chunk_size(chunk_size),
+                eof_encoded: false,
+            },
+        }
+    }
 }
 
 impl<T, E> Sink for TextWriter<T, E>
