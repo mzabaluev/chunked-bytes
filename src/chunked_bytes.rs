@@ -6,10 +6,22 @@ use std::{
     collections::VecDeque,
 };
 
+const DEFAULT_CHUNK_SIZE: usize = 4096;
+
 pub struct ChunkedBytes {
     current: BytesMut,
     chunks: VecDeque<Bytes>,
     chunk_size: usize,
+}
+
+impl Default for ChunkedBytes {
+    fn default() -> Self {
+        ChunkedBytes {
+            current: BytesMut::new(),
+            chunks: VecDeque::new(),
+            chunk_size: DEFAULT_CHUNK_SIZE,
+        }
+    }
 }
 
 impl ChunkedBytes {
