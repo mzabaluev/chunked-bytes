@@ -14,11 +14,7 @@ pub struct TextReader<T, D> {
 
 const DEFAULT_CAPACITY: usize = 8 * 1024;
 
-impl<T, D> TextReader<T, D>
-where
-    T: AsyncRead,
-    D: TextDecoder,
-{
+impl<T, D> TextReader<T, D> {
     pub fn new(reader: T, decoder: D) -> Self {
         Self::with_capacity(reader, decoder, DEFAULT_CAPACITY)
     }
