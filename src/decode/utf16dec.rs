@@ -1,7 +1,8 @@
 use super::{DecodeError, TextDecoder};
 
 use bytes::{ByteOrder, BytesMut};
-use strchunk::{split::Take, StrChunk, StrChunkMut};
+use range_split::TakeRange;
+use strchunk::{StrChunk, StrChunkMut};
 
 use std::{char, marker::PhantomData};
 

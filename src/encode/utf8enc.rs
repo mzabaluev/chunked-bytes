@@ -1,6 +1,7 @@
 use super::{EncodeError, TextEncoder};
 use crate::chunked_bytes::ChunkedBytes;
-use strchunk::{split::Take, StrChunk};
+use range_split::TakeRange;
+use strchunk::StrChunk;
 
 pub struct Utf8Encoder {}
 

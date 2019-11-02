@@ -1,7 +1,9 @@
 use super::{EncodeError, TextEncoder};
-use bytes::{BufMut, ByteOrder};
 use crate::chunked_bytes::ChunkedBytes;
-use strchunk::{split::Take, StrChunk};
+
+use bytes::{BufMut, ByteOrder};
+use range_split::TakeRange;
+use strchunk::StrChunk;
 
 use std::marker::PhantomData;
 
