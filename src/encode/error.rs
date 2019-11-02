@@ -6,17 +6,21 @@ use std::{
 
 #[derive(Debug)]
 pub enum EncodeError {
-    Unrepresentable(char),
     Io(io::Error),
+    Unrepresentable(char),
 }
 
 impl Display for EncodeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            EncodeError::Io(e) => write!(f, "{}", e),
             EncodeError::Unrepresentable(c) => {
-                write!(f, "unrepresentable Unicode character '{}' in input", c)
+                write!(
+                    f,
+                    "Unicode character U+{:04X} cannot be represented in this encoding",
+                    u32::from(*c),
+                )
             }
-            EncodeError::Io(io_err) => write!(f, "{}", io_err),
         }
     }
 }
