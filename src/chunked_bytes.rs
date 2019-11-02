@@ -9,7 +9,7 @@ use std::{
 const DEFAULT_CHUNK_SIZE: usize = 4096;
 
 pub struct ChunkedBytes {
-    current: BytesMut,
+    staging: BytesMut,
     chunks: VecDeque<Bytes>,
     chunk_size: usize,
 }
@@ -17,7 +17,7 @@ pub struct ChunkedBytes {
 impl Default for ChunkedBytes {
     fn default() -> Self {
         ChunkedBytes {
-            current: BytesMut::new(),
+            staging: BytesMut::new(),
             chunks: VecDeque::new(),
             chunk_size: DEFAULT_CHUNK_SIZE,
         }
@@ -37,27 +37,27 @@ impl ChunkedBytes {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.chunks.is_empty() && self.current.is_empty()
+        self.chunks.is_empty() && self.staging.is_empty()
     }
 
     pub fn flush(&mut self) {
-        let bytes = self.current.take();
+        let bytes = self.staging.take();
         if !bytes.is_empty() {
             self.chunks.push_back(bytes.freeze())
         }
     }
 
     pub fn reserve(&mut self, additional: usize) {
-        // If the current buffer has been taken from, its capacity
+        // If the staging buffer has been taken from, its capacity
         // can be smaller than the chunk size. If a large capacity request
         // has been reserved, it can be larger. So we use the least of the two
-        // as the limit for appending to the current buffer.
-        let cap = min(self.current.capacity(), self.chunk_size);
-        let written_len = self.current.len();
+        // as the limit for appending to the staging buffer.
+        let cap = min(self.staging.capacity(), self.chunk_size);
+        let written_len = self.staging.len();
         let required = written_len.checked_add(additional).expect("overflow");
         if required > cap {
             self.flush();
-            self.current.reserve(max(additional, self.chunk_size));
+            self.staging.reserve(max(additional, self.chunk_size));
         }
     }
 
@@ -71,29 +71,29 @@ impl ChunkedBytes {
 
 impl BufMut for ChunkedBytes {
     fn remaining_mut(&self) -> usize {
-        self.current.remaining_mut()
+        self.staging.remaining_mut()
     }
 
     unsafe fn advance_mut(&mut self, cnt: usize) {
-        self.current.advance_mut(cnt);
-        if self.current.len() >= self.chunk_size {
+        self.staging.advance_mut(cnt);
+        if self.staging.len() >= self.chunk_size {
             self.flush();
         }
     }
 
     unsafe fn bytes_mut(&mut self) -> &mut [u8] {
-        self.current.bytes_mut()
+        self.staging.bytes_mut()
     }
 }
 
 impl Buf for ChunkedBytes {
     fn remaining(&self) -> usize {
-        self.chunks.iter().fold(0, |acc, c| acc + c.len()) + self.current.len()
+        self.chunks.iter().fold(0, |acc, c| acc + c.len()) + self.staging.len()
     }
 
     fn bytes(&self) -> &[u8] {
         if self.chunks.is_empty() {
-            &self.current[..]
+            &self.staging[..]
         } else {
             &self.chunks[0]
         }
@@ -103,7 +103,7 @@ impl Buf for ChunkedBytes {
         loop {
             let chunk_len = match self.chunks.front_mut() {
                 None => {
-                    self.current.advance(cnt);
+                    self.staging.advance(cnt);
                     return;
                 }
                 Some(bytes) => {
@@ -130,8 +130,8 @@ impl Buf for ChunkedBytes {
             len
         };
 
-        if n < dst.len() && !self.current.is_empty() {
-            dst[n] = (&self.current[..]).into();
+        if n < dst.len() && !self.staging.is_empty() {
+            dst[n] = (&self.staging[..]).into();
             n + 1
         } else {
             n
