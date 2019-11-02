@@ -22,11 +22,10 @@ impl Display for EncodeError {
 }
 
 impl Error for EncodeError {
-    fn cause(&self) -> Option<&Error> {
-        if let EncodeError::Io(ref io_err) = *self {
-            Some(io_err)
-        } else {
-            None
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            EncodeError::Io(e) => Some(e),
+            EncodeError::Unrepresentable(_) => None,
         }
     }
 }
