@@ -7,6 +7,7 @@ use std::mem::MaybeUninit;
 
 const DEFAULT_CHUNK_SIZE: usize = 4096;
 
+#[derive(Debug)]
 pub struct ChunkedBytes {
     staging: BytesMut,
     chunks: VecDeque<Bytes>,
