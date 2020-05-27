@@ -137,4 +137,23 @@ impl Buf for ChunkedBytes {
             n
         }
     }
+
+    fn to_bytes(&mut self) -> Bytes {
+        match self.chunks.pop_front() {
+            None => self.staging.split().freeze(),
+            Some(chunk) => {
+                if self.is_empty() {
+                    return chunk;
+                }
+                let cap = chunk.len() + self.remaining();
+                let mut buf = BytesMut::with_capacity(cap);
+                buf.put(chunk);
+                while let Some(chunk) = self.chunks.pop_front() {
+                    buf.put(chunk);
+                }
+                buf.put(self.staging.split());
+                buf.freeze()
+            }
+        }
+    }
 }
