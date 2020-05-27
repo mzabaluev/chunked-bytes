@@ -100,22 +100,22 @@ impl Buf for ChunkedBytes {
 
     fn advance(&mut self, mut cnt: usize) {
         loop {
-            let chunk_len = match self.chunks.front_mut() {
+            match self.chunks.front_mut() {
                 None => {
                     self.staging.advance(cnt);
                     return;
                 }
-                Some(bytes) => {
-                    let len = bytes.len();
+                Some(chunk) => {
+                    let len = chunk.len();
                     if cnt < len {
-                        bytes.advance(cnt);
+                        chunk.advance(cnt);
                         return;
+                    } else {
+                        cnt -= len;
+                        self.chunks.pop_front();
                     }
-                    len
                 }
-            };
-            cnt -= chunk_len;
-            self.chunks.pop_front();
+            }
         }
     }
 
