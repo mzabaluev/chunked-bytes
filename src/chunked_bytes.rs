@@ -1,10 +1,9 @@
 use bytes::{Buf, BufMut, Bytes, BytesMut};
-use iovec::IoVec;
 
-use std::{
-    cmp::{max, min},
-    collections::VecDeque,
-};
+use std::cmp::{max, min};
+use std::collections::VecDeque;
+use std::io::IoSlice;
+use std::mem::MaybeUninit;
 
 const DEFAULT_CHUNK_SIZE: usize = 4096;
 
@@ -41,9 +40,9 @@ impl ChunkedBytes {
     }
 
     pub fn flush(&mut self) {
-        let bytes = self.staging.take();
-        if !bytes.is_empty() {
-            self.chunks.push_back(bytes.freeze())
+        if !self.staging.is_empty() {
+            let bytes = self.staging.split().freeze();
+            self.chunks.push_back(bytes)
         }
     }
 
@@ -81,7 +80,7 @@ impl BufMut for ChunkedBytes {
         }
     }
 
-    unsafe fn bytes_mut(&mut self) -> &mut [u8] {
+    fn bytes_mut(&mut self) -> &mut [MaybeUninit<u8>] {
         self.staging.bytes_mut()
     }
 }
@@ -120,18 +119,18 @@ impl Buf for ChunkedBytes {
         }
     }
 
-    fn bytes_vec<'a>(&'a self, dst: &mut [&'a IoVec]) -> usize {
+    fn bytes_vectored<'a>(&'a self, dst: &mut [IoSlice<'a>]) -> usize {
         let n = {
             let zipped = dst.iter_mut().zip(self.chunks.iter());
             let len = zipped.len();
-            for (iovec, chunk) in zipped {
-                *iovec = (&chunk[..]).into();
+            for (io_slice, chunk) in zipped {
+                *io_slice = IoSlice::new(chunk);
             }
             len
         };
 
         if n < dst.len() && !self.staging.is_empty() {
-            dst[n] = (&self.staging[..]).into();
+            dst[n] = IoSlice::new(&self.staging);
             n + 1
         } else {
             n

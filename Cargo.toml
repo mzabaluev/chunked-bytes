@@ -8,5 +8,4 @@ edition = "2018"
 path = "src/chunked_bytes.rs"
 
 [dependencies]
-bytes = "0.4"
-iovec = "0.1"
+bytes = "0.5"
