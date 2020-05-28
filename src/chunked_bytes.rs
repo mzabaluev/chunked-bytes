@@ -1,7 +1,3 @@
-#![warn(clippy::all)]
-#![warn(future_incompatible)]
-#![warn(rust_2018_idioms)]
-
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 use std::cmp::{max, min};
