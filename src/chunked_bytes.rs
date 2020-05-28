@@ -1,3 +1,5 @@
+#![warn(clippy::all)]
+
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 use std::cmp::{max, min};
