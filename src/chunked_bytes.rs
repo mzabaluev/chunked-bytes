@@ -1,3 +1,5 @@
+use crate::{DrainChunks, IntoChunks};
+
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 use std::cmp::{max, min};
@@ -68,6 +70,17 @@ impl ChunkedBytes {
             self.flush();
             self.chunks.push_back(chunk);
         }
+    }
+
+    pub fn drain_chunks(&mut self) -> DrainChunks<'_> {
+        DrainChunks::new(self.chunks.drain(..))
+    }
+
+    pub fn into_chunks(mut self) -> IntoChunks {
+        if !self.staging.is_empty() {
+            self.chunks.push_back(self.staging.freeze());
+        }
+        IntoChunks::new(self.chunks.into_iter())
     }
 }
 
