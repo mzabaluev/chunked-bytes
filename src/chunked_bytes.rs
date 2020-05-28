@@ -48,10 +48,12 @@ impl ChunkedBytes {
     }
 
     pub fn reserve(&mut self, additional: usize) {
-        // If the staging buffer has been taken from, its capacity
-        // can be smaller than the chunk size. If a large capacity request
-        // has been reserved, it can be larger. So we use the least of the two
-        // as the limit for appending to the staging buffer.
+        // Get predictable behavior regardless of any past reservations
+        // that might have increased the capacity of the staging buffer.
+        // If the chunks are consumed quickly enough, the staging buffer
+        // gets to reuse its current allocation, but unless the threshold
+        // for appending to it is not capped with the chunk size, we might get
+        // larger chunks than requested.
         let cap = min(self.staging.capacity(), self.chunk_size);
         let written_len = self.staging.len();
         let required = written_len.checked_add(additional).expect("overflow");
