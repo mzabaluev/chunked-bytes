@@ -74,7 +74,7 @@ impl ChunkedBytes {
         self.staging.reserve(additional);
     }
 
-    pub fn append_chunk(&mut self, chunk: Bytes) {
+    pub fn push_chunk(&mut self, chunk: Bytes) {
         if !chunk.is_empty() {
             self.flush();
             self.chunks.push_back(chunk);
