@@ -117,6 +117,10 @@ impl Buf for ChunkedBytes {
             .fold(self.staging.len(), |sum, chunk| sum + chunk.len())
     }
 
+    fn has_remaining(&self) -> bool {
+        !self.is_empty()
+    }
+
     fn bytes(&self) -> &[u8] {
         if let Some(chunk) = self.chunks.front() {
             chunk
