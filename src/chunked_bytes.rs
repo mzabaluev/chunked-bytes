@@ -2,7 +2,7 @@ use crate::{DrainChunks, IntoChunks};
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
-use std::cmp::{max, min};
+use std::cmp::max;
 use std::collections::VecDeque;
 use std::io::IoSlice;
 use std::mem::MaybeUninit;
@@ -49,20 +49,22 @@ impl ChunkedBytes {
         }
     }
 
-    pub fn reserve(&mut self, additional: usize) {
-        // Get predictable behavior regardless of any past reservations
-        // that might have increased the capacity of the staging buffer.
-        // If the chunks are consumed quickly enough, the staging buffer
-        // gets to reuse its current allocation, but unless the threshold
-        // for appending to it is not capped with the chunk size, we might get
-        // larger chunks than requested.
-        let cap = min(self.staging.capacity(), self.chunk_size);
+    /// Reserves capacity for at least `additional` bytes
+    /// to be appended contiguously to the staging buffer.
+    /// The next call to `bytes_mut` will return a slice of at least
+    /// this size. Note that this may be larger than the chunk size.
+    ///
+    /// Bytes written previously to the staging buffer are split off to
+    /// a new complete chunk if the added capacity would have caused
+    /// the staging buffer to grow beyond the nominal chunk size.
+    pub fn reserve(&mut self, mut additional: usize) {
         let written_len = self.staging.len();
         let required = written_len.checked_add(additional).expect("overflow");
-        if required > cap {
+        if required > self.chunk_size {
             self.flush();
-            self.staging.reserve(max(additional, self.chunk_size));
+            additional = max(additional, self.chunk_size);
         }
+        self.staging.reserve(additional);
     }
 
     pub fn append_chunk(&mut self, chunk: Bytes) {
@@ -97,6 +99,10 @@ impl BufMut for ChunkedBytes {
     }
 
     fn bytes_mut(&mut self) -> &mut [MaybeUninit<u8>] {
+        if self.staging.len() == self.staging.capacity() {
+            self.flush();
+            self.staging.reserve(self.chunk_size);
+        }
         self.staging.bytes_mut()
     }
 }
