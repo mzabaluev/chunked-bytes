@@ -118,10 +118,10 @@ impl Buf for ChunkedBytes {
     }
 
     fn bytes(&self) -> &[u8] {
-        if self.chunks.is_empty() {
-            &self.staging[..]
+        if let Some(chunk) = self.chunks.front() {
+            chunk
         } else {
-            &self.chunks[0]
+            &self.staging
         }
     }
 
