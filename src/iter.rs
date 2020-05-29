@@ -25,12 +25,6 @@ impl<'a> Iterator for DrainChunks<'a> {
     }
 }
 
-impl<'a> DoubleEndedIterator for DrainChunks<'a> {
-    fn next_back(&mut self) -> Option<Bytes> {
-        self.inner.next_back()
-    }
-}
-
 impl<'a> ExactSizeIterator for DrainChunks<'a> {}
 impl<'a> FusedIterator for DrainChunks<'a> {}
 
@@ -53,12 +47,6 @@ impl Iterator for IntoChunks {
 
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.inner.size_hint()
-    }
-}
-
-impl DoubleEndedIterator for IntoChunks {
-    fn next_back(&mut self) -> Option<Bytes> {
-        self.inner.next_back()
     }
 }
 
