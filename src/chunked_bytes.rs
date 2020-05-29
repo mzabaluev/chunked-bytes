@@ -112,7 +112,9 @@ impl BufMut for ChunkedBytes {
 
 impl Buf for ChunkedBytes {
     fn remaining(&self) -> usize {
-        self.chunks.iter().fold(0, |acc, c| acc + c.len()) + self.staging.len()
+        self.chunks
+            .iter()
+            .fold(self.staging.len(), |sum, chunk| sum + chunk.len())
     }
 
     fn bytes(&self) -> &[u8] {
