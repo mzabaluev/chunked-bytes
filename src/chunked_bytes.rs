@@ -31,14 +31,14 @@ impl ChunkedBytes {
         Default::default()
     }
 
-    pub fn with_chunk_size(chunk_size: usize) -> Self {
+    pub fn with_chunk_size_hint(chunk_size: usize) -> Self {
         ChunkedBytes {
             chunk_size,
             ..Default::default()
         }
     }
 
-    pub fn chunk_size(&self) -> usize {
+    pub fn chunk_size_hint(&self) -> usize {
         self.chunk_size
     }
 
