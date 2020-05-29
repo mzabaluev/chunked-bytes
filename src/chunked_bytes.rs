@@ -42,6 +42,9 @@ impl ChunkedBytes {
         self.chunks.is_empty() && self.staging.is_empty()
     }
 
+    /// Splits any bytes that have accumulated in the staging buffer
+    /// into a new complete chunk. If the staging buffer is empty, this method
+    /// does nothing.
     pub fn flush(&mut self) {
         if !self.staging.is_empty() {
             let bytes = self.staging.split().freeze();
