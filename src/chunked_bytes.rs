@@ -27,6 +27,10 @@ impl Default for ChunkedBytes {
 }
 
 impl ChunkedBytes {
+    pub fn new() -> Self {
+        Default::default()
+    }
+
     pub fn with_chunk_size(chunk_size: usize) -> Self {
         ChunkedBytes {
             chunk_size,
