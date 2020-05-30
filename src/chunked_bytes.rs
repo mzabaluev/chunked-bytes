@@ -8,6 +8,7 @@ use std::io::IoSlice;
 use std::mem::MaybeUninit;
 
 const DEFAULT_CHUNK_SIZE: usize = 4096;
+const INITIAL_CHUNKS_CAPACITY: usize = 1;
 
 #[derive(Debug)]
 pub struct ChunkedBytes {
@@ -21,7 +22,7 @@ impl Default for ChunkedBytes {
     fn default() -> Self {
         ChunkedBytes {
             staging: BytesMut::new(),
-            chunks: VecDeque::new(),
+            chunks: VecDeque::with_capacity(INITIAL_CHUNKS_CAPACITY),
             chunk_size: DEFAULT_CHUNK_SIZE,
         }
     }
