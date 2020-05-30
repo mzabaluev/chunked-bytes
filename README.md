@@ -1,6 +1,5 @@
-# tokio-text
-
-Utilities for text-oriented asynchronous I/O in the Tokio framework.
+A growing non-contiguous buffer for efficient data structure serialization
+and vectored output.
 
 ## License
 
