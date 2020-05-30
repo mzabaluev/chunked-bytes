@@ -29,11 +29,15 @@ impl Default for ChunkedBytes {
 }
 
 impl ChunkedBytes {
+    /// Creates a new `ChunkedBytes` container with the preferred chunk size
+    /// set to a default value.
     #[inline]
     pub fn new() -> Self {
         Default::default()
     }
 
+    /// Creates a new `ChunkedBytes` container with the given chunk size
+    /// to prefer.
     #[inline]
     pub fn with_preferred_chunk_size(chunk_size: usize) -> Self {
         ChunkedBytes {
