@@ -8,6 +8,7 @@ pub struct DrainChunks<'a> {
 }
 
 impl<'a> DrainChunks<'a> {
+    #[inline]
     pub(crate) fn new(inner: vec_deque::Drain<'a, Bytes>) -> Self {
         DrainChunks { inner }
     }
@@ -16,10 +17,12 @@ impl<'a> DrainChunks<'a> {
 impl<'a> Iterator for DrainChunks<'a> {
     type Item = Bytes;
 
+    #[inline]
     fn next(&mut self) -> Option<Bytes> {
         self.inner.next()
     }
 
+    #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.inner.size_hint()
     }
@@ -33,6 +36,7 @@ pub struct IntoChunks {
 }
 
 impl IntoChunks {
+    #[inline]
     pub(crate) fn new(inner: vec_deque::IntoIter<Bytes>) -> Self {
         IntoChunks { inner }
     }
@@ -41,10 +45,12 @@ impl IntoChunks {
 impl Iterator for IntoChunks {
     type Item = Bytes;
 
+    #[inline]
     fn next(&mut self) -> Option<Bytes> {
         self.inner.next()
     }
 
+    #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.inner.size_hint()
     }

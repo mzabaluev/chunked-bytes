@@ -17,6 +17,7 @@ pub struct ChunkedBytes {
 }
 
 impl Default for ChunkedBytes {
+    #[inline]
     fn default() -> Self {
         ChunkedBytes {
             staging: BytesMut::new(),
@@ -27,10 +28,12 @@ impl Default for ChunkedBytes {
 }
 
 impl ChunkedBytes {
+    #[inline]
     pub fn new() -> Self {
         Default::default()
     }
 
+    #[inline]
     pub fn with_chunk_size_hint(chunk_size: usize) -> Self {
         ChunkedBytes {
             chunk_size,
@@ -38,10 +41,12 @@ impl ChunkedBytes {
         }
     }
 
+    #[inline]
     pub fn chunk_size_hint(&self) -> usize {
         self.chunk_size
     }
 
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.chunks.is_empty() && self.staging.is_empty()
     }
@@ -49,6 +54,7 @@ impl ChunkedBytes {
     /// Splits any bytes that have accumulated in the staging buffer
     /// into a new complete chunk. If the staging buffer is empty, this method
     /// does nothing.
+    #[inline]
     pub fn flush(&mut self) {
         if !self.staging.is_empty() {
             let bytes = self.staging.split().freeze();
@@ -74,6 +80,7 @@ impl ChunkedBytes {
         self.staging.reserve(additional);
     }
 
+    #[inline]
     pub fn push_chunk(&mut self, chunk: Bytes) {
         if !chunk.is_empty() {
             self.flush();
@@ -81,10 +88,12 @@ impl ChunkedBytes {
         }
     }
 
+    #[inline]
     pub fn drain_chunks(&mut self) -> DrainChunks<'_> {
         DrainChunks::new(self.chunks.drain(..))
     }
 
+    #[inline]
     pub fn into_chunks(mut self) -> IntoChunks {
         if !self.staging.is_empty() {
             self.chunks.push_back(self.staging.freeze());
@@ -94,10 +103,12 @@ impl ChunkedBytes {
 }
 
 impl BufMut for ChunkedBytes {
+    #[inline]
     fn remaining_mut(&self) -> usize {
         self.staging.remaining_mut()
     }
 
+    #[inline]
     unsafe fn advance_mut(&mut self, cnt: usize) {
         self.staging.advance_mut(cnt);
         if self.staging.len() >= self.chunk_size {
@@ -105,6 +116,7 @@ impl BufMut for ChunkedBytes {
         }
     }
 
+    #[inline]
     fn bytes_mut(&mut self) -> &mut [MaybeUninit<u8>] {
         if self.staging.len() == self.staging.capacity() {
             self.flush();
@@ -121,10 +133,12 @@ impl Buf for ChunkedBytes {
             .fold(self.staging.len(), |sum, chunk| sum + chunk.len())
     }
 
+    #[inline]
     fn has_remaining(&self) -> bool {
         !self.is_empty()
     }
 
+    #[inline]
     fn bytes(&self) -> &[u8] {
         if let Some(chunk) = self.chunks.front() {
             chunk
