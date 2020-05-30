@@ -34,7 +34,7 @@ impl ChunkedBytes {
     }
 
     #[inline]
-    pub fn with_chunk_size_hint(chunk_size: usize) -> Self {
+    pub fn with_preferred_chunk_size(chunk_size: usize) -> Self {
         ChunkedBytes {
             chunk_size,
             ..Default::default()
@@ -42,7 +42,7 @@ impl ChunkedBytes {
     }
 
     #[inline]
-    pub fn chunk_size_hint(&self) -> usize {
+    pub fn preferred_chunk_size(&self) -> usize {
         self.chunk_size
     }
 
