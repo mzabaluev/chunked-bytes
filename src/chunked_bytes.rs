@@ -2,7 +2,6 @@ use crate::{DrainChunks, IntoChunks};
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
-use std::cmp::max;
 use std::collections::VecDeque;
 use std::io::IoSlice;
 use std::mem::MaybeUninit;
@@ -65,24 +64,6 @@ impl ChunkedBytes {
             let bytes = self.staging.split().freeze();
             self.chunks.push_back(bytes)
         }
-    }
-
-    /// Reserves capacity for at least `additional` bytes
-    /// to be appended contiguously to the staging buffer.
-    /// The next call to `bytes_mut` will return a slice of at least
-    /// this size. Note that this may be larger than the chunk size.
-    ///
-    /// Bytes written previously to the staging buffer are split off to
-    /// a new complete chunk if the added capacity would have caused
-    /// the staging buffer to grow beyond the nominal chunk size.
-    pub fn reserve(&mut self, mut additional: usize) {
-        let written_len = self.staging.len();
-        let required = written_len.checked_add(additional).expect("overflow");
-        if required > self.chunk_size {
-            self.flush();
-            additional = max(additional, self.chunk_size);
-        }
-        self.staging.reserve(additional);
     }
 
     #[inline]
