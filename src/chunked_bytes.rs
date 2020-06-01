@@ -291,3 +291,55 @@ impl Buf for ChunkedBytes {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn reserve_does_not_grow_staging_buffer() {
+        let mut buf = ChunkedBytes::with_preferred_chunk_size(8);
+        let cap = buf.bytes_mut().len();
+        assert!(cap >= 8);
+
+        buf.put(&vec![0; cap][..]);
+        assert_eq!(buf.bytes_mut().len(), cap);
+        {
+            let mut chunks = buf.drain_chunks();
+            let chunk = chunks.next().expect("expected a chunk to be flushed");
+            assert_eq!(chunk.len(), cap);
+            assert!(chunks.next().is_none());
+        }
+
+        buf.put(&[0; 4][..]);
+        buf.advance(2);
+        buf.put(&vec![0; cap - 4][..]);
+        assert_eq!(buf.bytes_mut().len(), cap);
+        {
+            let mut chunks = buf.drain_chunks();
+            let chunk = chunks.next().expect("expected a chunk to be flushed");
+            assert_eq!(chunk.len(), cap - 2);
+            assert!(chunks.next().is_none());
+        }
+
+        buf.put(&[0; 4][..]);
+        buf.advance(4);
+        buf.put(&vec![0; cap - 4][..]);
+        assert_eq!(buf.bytes_mut().len(), cap - 4);
+        assert_eq!(buf.staging.capacity(), cap);
+        assert!(
+            buf.drain_chunks().next().is_none(),
+            "expected no chunks to be flushed"
+        );
+
+        buf.advance(2);
+        buf.put(&vec![0; cap - 4][..]);
+        buf.advance(4);
+        assert_eq!(buf.bytes_mut().len(), cap - 2);
+        assert_eq!(buf.staging.capacity(), cap);
+        assert!(
+            buf.drain_chunks().next().is_none(),
+            "expected no chunks to be flushed"
+        );
+    }
+}

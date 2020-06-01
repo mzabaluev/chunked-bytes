@@ -24,5 +24,5 @@
 mod chunked_bytes;
 mod iter;
 
-pub use chunked_bytes::ChunkedBytes;
-pub use iter::{DrainChunks, IntoChunks};
+pub use self::chunked_bytes::ChunkedBytes;
+pub use self::iter::{DrainChunks, IntoChunks};
