@@ -172,7 +172,21 @@ impl BufMut for ChunkedBytes {
             //    and the consumer may have read a part or the whole of it.
             // Our goal is to reserve space in the staging buffer without
             // forcing it to reallocate to a larger capacity.
-            let additional = if written_len > self.chunk_size / 2 {
+            //
+            // To reuse the allocation of `BytesMut` in the vector form with
+            // the offset `off` and remaining capacity `cap` while reserving
+            // `additional` bytes, the following needs to apply:
+            //
+            // off >= additional && off >= cap / 2
+            //
+            // We have:
+            //
+            // cap == written_len
+            // off + cap == allocated_size >= chunk_size
+            //
+            // From this, we can derive the following condition check:
+            let cutoff = written_len.saturating_add(written_len / 2);
+            let additional = if cutoff > self.chunk_size {
                 // Alas, the bytes still in the staging buffer are likely to
                 // necessitate a new allocation. Split them off to a chunk
                 // first, so that the new allocation does not have to copy
@@ -311,31 +325,21 @@ mod tests {
             assert!(chunks.next().is_none());
         }
 
-        buf.put(&[0; 4][..]);
-        buf.advance(2);
         buf.put(&vec![0; cap - 4][..]);
+        buf.advance(cap - 6);
+        buf.put(&[0; 4][..]);
         assert_eq!(buf.bytes_mut().len(), cap);
         {
             let mut chunks = buf.drain_chunks();
             let chunk = chunks.next().expect("expected a chunk to be flushed");
-            assert_eq!(chunk.len(), cap - 2);
+            assert_eq!(chunk.len(), 6);
             assert!(chunks.next().is_none());
         }
 
-        buf.put(&[0; 4][..]);
-        buf.advance(4);
-        buf.put(&vec![0; cap - 4][..]);
-        assert_eq!(buf.bytes_mut().len(), cap - 4);
-        assert_eq!(buf.staging.capacity(), cap);
-        assert!(
-            buf.drain_chunks().next().is_none(),
-            "expected no chunks to be flushed"
-        );
-
-        buf.advance(2);
-        buf.put(&vec![0; cap - 4][..]);
-        buf.advance(4);
-        assert_eq!(buf.bytes_mut().len(), cap - 2);
+        buf.put(&vec![0; cap - 5][..]);
+        buf.advance(cap - 5);
+        buf.put(&[0; 5][..]);
+        assert_eq!(buf.bytes_mut().len(), cap - 5);
         assert_eq!(buf.staging.capacity(), cap);
         assert!(
             buf.drain_chunks().next().is_none(),
