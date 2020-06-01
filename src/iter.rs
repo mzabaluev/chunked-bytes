@@ -3,6 +3,7 @@ use bytes::Bytes;
 use std::collections::vec_deque;
 use std::iter::FusedIterator;
 
+/// The iterator produced by the `drain_chunks` method of `ChunkedBytes`.
 pub struct DrainChunks<'a> {
     inner: vec_deque::Drain<'a, Bytes>,
 }
@@ -31,6 +32,7 @@ impl<'a> Iterator for DrainChunks<'a> {
 impl<'a> ExactSizeIterator for DrainChunks<'a> {}
 impl<'a> FusedIterator for DrainChunks<'a> {}
 
+/// The iterator produced by the `into_chunks` method of `ChunkedBytes`.
 pub struct IntoChunks {
     inner: vec_deque::IntoIter<Bytes>,
 }
