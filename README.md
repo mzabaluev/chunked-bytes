@@ -1,4 +1,4 @@
-A growing non-contiguous buffer for efficient data structure serialization
+A rope-like non-contiguous buffer for efficient data structure serialization
 and vectored output.
 
 ## License
