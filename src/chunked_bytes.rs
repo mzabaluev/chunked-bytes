@@ -60,11 +60,9 @@ impl ChunkedBytes {
     /// Returns the size this `ChunkedBytes` container uses as the threshold
     /// for splitting off complete chunks.
     ///
-    /// Note that the size of produced chunks may be larger than the
-    /// configured value due to the allocation strategy used internally by
-    /// the implementation. Chunks may also be smaller than the threshold if
-    /// writing with `BufMut` methods has been mixed with use of the
-    /// `push_chunk` method, or the `flush` method has been called directly.
+    /// Note that the size of produced chunks may be larger or smaller than the
+    /// configured value, due to the allocation strategy used internally by
+    /// the implementation and also depending on the pattern of usage.
     #[inline]
     pub fn preferred_chunk_size(&self) -> usize {
         self.chunk_size
@@ -166,9 +164,29 @@ impl BufMut for ChunkedBytes {
     /// the implementation.
     #[inline]
     fn bytes_mut(&mut self) -> &mut [MaybeUninit<u8>] {
-        if self.staging.len() == self.staging.capacity() {
-            self.flush();
-            self.staging.reserve(self.chunk_size);
+        let written_len = self.staging.len();
+        if written_len == self.staging.capacity() {
+            // We are here when either:
+            // a) the buffer has never been used and never allocated;
+            // b) the producer has filled a previously allocated buffer,
+            //    and the consumer may have read a part or the whole of it.
+            // Our goal is to reserve space in the staging buffer without
+            // forcing it to reallocate to a larger capacity.
+            let additional = if written_len > self.chunk_size / 2 {
+                // Alas, the bytes still in the staging buffer are likely to
+                // necessitate a new allocation. Split them off to a chunk
+                // first, so that the new allocation does not have to copy
+                // them and the total required capacity is `self.chunk_size`.
+                self.flush();
+                self.chunk_size
+            } else {
+                // This amount will get BytesMut to reuse the allocation and
+                // copy back the bytes if there are no chunks left unconsumed.
+                // Otherwise, it will reallocate to its previous capacity.
+                // A virgin buffer will be allocated to `self.chunk_size`.
+                self.chunk_size - written_len
+            };
+            self.staging.reserve(additional);
         }
         self.staging.bytes_mut()
     }
