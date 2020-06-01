@@ -15,6 +15,51 @@
 //! access to the buffered data. It also provides the `push_chunk` method
 //! for appending a `Bytes` slice to its queue of non-contiguous chunks without
 //! copying the data.
+//!
+//! # Examples
+//!
+//! ```
+//! use bytes::{BufMut, Bytes};
+//! use chunked_bytes::ChunkedBytes;
+//! use std::error::Error;
+//! use std::net::SocketAddr;
+//! use tokio::io::AsyncWriteExt;
+//! use tokio::net::{TcpListener, TcpStream};
+//! use tokio::task::JoinHandle;
+//! use tokio::prelude::*;
+//!
+//! #[tokio::main]
+//! async fn main() -> io::Result<()> {
+//!     const SEND_BUFFER_SIZE: usize = 1024;
+//!     const MESSAGE: &[u8] = b"I \xf0\x9f\x96\xa4 \x00\xc0\xff\xee";
+//!
+//!     let mut buf = ChunkedBytes::with_preferred_chunk_size(SEND_BUFFER_SIZE);
+//!     buf.put("I ".as_bytes());
+//!     buf.push_chunk(Bytes::from("🖤 "));
+//!     buf.put_u32(0xc0ffee);
+//!
+//!     let listen_addr = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
+//!     let mut server = TcpListener::bind(listen_addr).await?;
+//!     let server_addr = server.local_addr()?;
+//!
+//!     let server_handle: JoinHandle<io::Result<()>> = tokio::spawn(async move {
+//!         let (mut receiver, _) = server.accept().await?;
+//!         let mut buf = Vec::with_capacity(64);
+//!         receiver.read_to_end(&mut buf).await?;
+//!         assert_eq!(buf.as_slice(), MESSAGE);
+//!         Ok(())
+//!     });
+//!
+//!     let mut sender = TcpStream::connect(server_addr).await?;
+//!     sender.set_send_buffer_size(SEND_BUFFER_SIZE)?;
+//!
+//!     let bytes_written = sender.write_buf(&mut buf).await?;
+//!     assert_eq!(bytes_written, MESSAGE.len());
+//!     AsyncWriteExt::shutdown(&mut sender).await?;
+//!
+//!     server_handle.await??;
+//!     Ok(())
+//! }
 
 #![warn(clippy::all)]
 #![warn(future_incompatible)]
