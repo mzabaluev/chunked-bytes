@@ -130,6 +130,46 @@ impl ChunkedBytes {
         }
         IntoChunks::new(self.chunks.into_iter())
     }
+
+    fn reserve_staging(&mut self) {
+        let cap = self.staging.capacity();
+        debug_assert_eq!(cap, self.staging.len());
+
+        // We are here when either:
+        // a) the buffer has never been used and never allocated;
+        // b) the producer has filled a previously allocated buffer,
+        //    and the consumer may have read a part or the whole of it.
+        // Our goal is to reserve space in the staging buffer without
+        // forcing it to reallocate to a larger capacity.
+        //
+        // To reuse the allocation of `BytesMut` in the vector form with
+        // the offset `off` and remaining capacity `cap` while reserving
+        // `additional` bytes, the following needs to apply:
+        //
+        // off >= additional && off >= cap / 2
+        //
+        // We have:
+        //
+        // off + cap == allocated_size >= chunk_size
+        //
+        // From this, we can derive the following condition check:
+        let cutoff = cap.saturating_add(cap / 2);
+        let additional = if cutoff > self.chunk_size {
+            // Alas, the bytes still in the staging buffer are likely to
+            // necessitate a new allocation. Split them off to a chunk
+            // first, so that the new allocation does not have to copy
+            // them and the total required capacity is `self.chunk_size`.
+            self.flush();
+            self.chunk_size
+        } else {
+            // This amount will get BytesMut to reuse the allocation and
+            // copy back the bytes if there are no chunks left unconsumed.
+            // Otherwise, it will reallocate to its previous capacity.
+            // A virgin buffer will be allocated to `self.chunk_size`.
+            self.chunk_size - cap
+        };
+        self.staging.reserve(additional);
+    }
 }
 
 impl BufMut for ChunkedBytes {
@@ -164,43 +204,8 @@ impl BufMut for ChunkedBytes {
     /// the implementation.
     #[inline]
     fn bytes_mut(&mut self) -> &mut [MaybeUninit<u8>] {
-        let written_len = self.staging.len();
-        if written_len == self.staging.capacity() {
-            // We are here when either:
-            // a) the buffer has never been used and never allocated;
-            // b) the producer has filled a previously allocated buffer,
-            //    and the consumer may have read a part or the whole of it.
-            // Our goal is to reserve space in the staging buffer without
-            // forcing it to reallocate to a larger capacity.
-            //
-            // To reuse the allocation of `BytesMut` in the vector form with
-            // the offset `off` and remaining capacity `cap` while reserving
-            // `additional` bytes, the following needs to apply:
-            //
-            // off >= additional && off >= cap / 2
-            //
-            // We have:
-            //
-            // cap == written_len
-            // off + cap == allocated_size >= chunk_size
-            //
-            // From this, we can derive the following condition check:
-            let cutoff = written_len.saturating_add(written_len / 2);
-            let additional = if cutoff > self.chunk_size {
-                // Alas, the bytes still in the staging buffer are likely to
-                // necessitate a new allocation. Split them off to a chunk
-                // first, so that the new allocation does not have to copy
-                // them and the total required capacity is `self.chunk_size`.
-                self.flush();
-                self.chunk_size
-            } else {
-                // This amount will get BytesMut to reuse the allocation and
-                // copy back the bytes if there are no chunks left unconsumed.
-                // Otherwise, it will reallocate to its previous capacity.
-                // A virgin buffer will be allocated to `self.chunk_size`.
-                self.chunk_size - written_len
-            };
-            self.staging.reserve(additional);
+        if self.staging.len() == self.staging.capacity() {
+            self.reserve_staging();
         }
         self.staging.bytes_mut()
     }
