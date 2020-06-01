@@ -5,6 +5,7 @@ license = "MIT"
 authors = ["Mikhail Zabaluev <mikhail.zabaluev@gmail.com>"]
 edition = "2018"
 
+repository = "https://github.com/mzabaluev/chunked-bytes"
 description = """
 A rope-like non-contiguous buffer for efficient data structure serialization
 and vectored output.
