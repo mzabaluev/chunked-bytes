@@ -21,7 +21,6 @@
 //! ```
 //! use bytes::{BufMut, Bytes};
 //! use chunked_bytes::ChunkedBytes;
-//! use std::error::Error;
 //! use std::net::SocketAddr;
 //! use tokio::io::AsyncWriteExt;
 //! use tokio::net::{TcpListener, TcpStream};
@@ -65,6 +64,7 @@
 #![warn(future_incompatible)]
 #![warn(missing_docs)]
 #![warn(rust_2018_idioms)]
+#![doc(test(no_crate_inject, attr(deny(warnings, rust_2018_idioms))))]
 
 mod chunked_bytes;
 mod iter;
