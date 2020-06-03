@@ -180,10 +180,6 @@ impl BufMut for ChunkedBytes {
 
     /// Advances the writing position in the staging buffer.
     ///
-    /// If the number of bytes accumulated in the staging buffer reaches
-    /// or exceeds the preferred chunk size, the bytes are split off
-    /// to form a new complete chunk.
-    ///
     /// # Panics
     ///
     /// This function may panic if `cnt > self.remaining_mut()`.
@@ -191,9 +187,6 @@ impl BufMut for ChunkedBytes {
     #[inline]
     unsafe fn advance_mut(&mut self, cnt: usize) {
         self.staging.advance_mut(cnt);
-        if self.staging.len() >= self.chunk_size {
-            self.flush();
-        }
     }
 
     /// Returns a mutable slice of unwritten bytes available in
