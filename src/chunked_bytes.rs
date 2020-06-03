@@ -7,7 +7,6 @@ use std::io::IoSlice;
 use std::mem::MaybeUninit;
 
 const DEFAULT_CHUNK_SIZE: usize = 4096;
-const INITIAL_CHUNKS_CAPACITY: usize = 1;
 
 /// A non-contiguous buffer for efficient serialization of data structures.
 ///
@@ -33,7 +32,7 @@ impl Default for ChunkedBytes {
     fn default() -> Self {
         ChunkedBytes {
             staging: BytesMut::new(),
-            chunks: VecDeque::with_capacity(INITIAL_CHUNKS_CAPACITY),
+            chunks: VecDeque::new(),
             chunk_size: DEFAULT_CHUNK_SIZE,
         }
     }
@@ -54,6 +53,21 @@ impl ChunkedBytes {
         ChunkedBytes {
             chunk_size,
             ..Default::default()
+        }
+    }
+
+    /// The fully detailed constructor for `ChunkedBytes`.
+    /// The preferred chunk size is given in `chunk_size`, and an upper
+    /// estimate of the number of chunks this container could create
+    /// should be given in `chunking_capacity`. More chunks can still
+    /// be created, but this may cause reallocations of internal data
+    /// structures.
+    #[inline]
+    pub fn with_profile(chunk_size: usize, chunking_capacity: usize) -> Self {
+        ChunkedBytes {
+            staging: BytesMut::new(),
+            chunks: VecDeque::with_capacity(chunking_capacity),
+            chunk_size,
         }
     }
 
