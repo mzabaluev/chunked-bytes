@@ -58,10 +58,10 @@ impl ChunkedBytes {
 
     /// The fully detailed constructor for `ChunkedBytes`.
     /// The preferred chunk size is given in `chunk_size`, and an upper
-    /// estimate of the number of chunks this container could create
-    /// should be given in `chunking_capacity`. More chunks can still
-    /// be created, but this may cause reallocations of internal data
-    /// structures.
+    /// estimate of the number of chunks this container could be expected to
+    /// have at any moment of time should be given in `chunking_capacity`.
+    /// More chunks can still be held, but this may cause reallocations of
+    /// internal data structures.
     #[inline]
     pub fn with_profile(chunk_size: usize, chunking_capacity: usize) -> Self {
         ChunkedBytes {
