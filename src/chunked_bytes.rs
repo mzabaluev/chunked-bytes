@@ -192,12 +192,6 @@ impl BufMut for ChunkedBytes {
         self.staging.remaining_mut()
     }
 
-    /// Advances the writing position in the staging buffer.
-    ///
-    /// # Panics
-    ///
-    /// This function may panic if `cnt > self.remaining_mut()`.
-    ///
     #[inline]
     unsafe fn advance_mut(&mut self, cnt: usize) {
         self.staging.advance_mut(cnt);
