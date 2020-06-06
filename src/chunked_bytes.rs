@@ -3,6 +3,7 @@ use crate::{DrainChunks, IntoChunks};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 use std::collections::VecDeque;
+use std::fmt;
 use std::io::IoSlice;
 use std::mem::MaybeUninit;
 
@@ -309,6 +310,25 @@ impl Buf for ChunkedBytes {
                 buf.freeze()
             }
         }
+    }
+}
+
+impl fmt::Write for ChunkedBytes {
+    #[inline]
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        if self.remaining_mut() >= s.len() {
+            self.put_slice(s.as_bytes());
+            Ok(())
+        } else {
+            Err(fmt::Error)
+        }
+    }
+
+    // The default implementation delegates to
+    // fmt::write(&mut self as &mut dyn fmt::Write, args)
+    #[inline]
+    fn write_fmt(&mut self, args: fmt::Arguments<'_>) -> fmt::Result {
+        fmt::write(self, args)
     }
 }
 
