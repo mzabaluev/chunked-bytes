@@ -29,13 +29,7 @@
 //!
 //! #[tokio::main]
 //! async fn main() -> io::Result<()> {
-//!     const SEND_BUFFER_SIZE: usize = 1024;
 //!     const MESSAGE: &[u8] = b"I \xf0\x9f\x96\xa4 \x00\xc0\xff\xee";
-//!
-//!     let mut buf = ChunkedBytes::with_preferred_chunk_size(SEND_BUFFER_SIZE);
-//!     buf.put("I ".as_bytes());
-//!     buf.push_chunk(Bytes::from("🖤 "));
-//!     buf.put_u32(0xc0ffee);
 //!
 //!     let listen_addr = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
 //!     let mut server = TcpListener::bind(listen_addr).await?;
@@ -50,7 +44,13 @@
 //!     });
 //!
 //!     let mut sender = TcpStream::connect(server_addr).await?;
-//!     sender.set_send_buffer_size(SEND_BUFFER_SIZE)?;
+//!
+//!     let buf_size = sender.send_buffer_size()?;
+//!     let mut buf = ChunkedBytes::with_preferred_chunk_size(buf_size);
+//!
+//!     buf.put("I ".as_bytes());
+//!     buf.push_chunk(Bytes::from("🖤 "));
+//!     buf.put_u32(0xc0ffee);
 //!
 //!     let bytes_written = sender.write_buf(&mut buf).await?;
 //!     assert_eq!(bytes_written, MESSAGE.len());
