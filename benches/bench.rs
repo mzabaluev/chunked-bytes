@@ -160,7 +160,107 @@ fn pump_pressured<B: Buf + BufMut>(
 }
 
 #[bench]
-fn pressured_150_percent_chunked(b: &mut Bencher) {
+fn pressured_in_50_out_50_percent_chunked(b: &mut Bencher) {
+    pump_pressured(
+        ChunkedBytes::with_preferred_chunk_size(BUF_SIZE),
+        BUF_SIZE / 2,
+        BUF_SIZE / 2,
+        b,
+    );
+}
+
+#[bench]
+fn pressured_in_50_out_50_percent_straight(b: &mut Bencher) {
+    pump_pressured(
+        BytesMut::with_capacity(BUF_SIZE),
+        BUF_SIZE / 2,
+        BUF_SIZE / 2,
+        b,
+    );
+}
+
+#[bench]
+fn pressured_in_300_out_50_percent_chunked(b: &mut Bencher) {
+    pump_pressured(
+        ChunkedBytes::with_preferred_chunk_size(BUF_SIZE),
+        BUF_SIZE * 3,
+        BUF_SIZE / 2,
+        b,
+    );
+}
+
+#[bench]
+fn pressured_in_300_out_50_percent_straight(b: &mut Bencher) {
+    pump_pressured(
+        BytesMut::with_capacity(BUF_SIZE),
+        BUF_SIZE * 3,
+        BUF_SIZE / 2,
+        b,
+    );
+}
+
+#[bench]
+fn pressured_in_310_out_50_percent_chunked(b: &mut Bencher) {
+    pump_pressured(
+        ChunkedBytes::with_preferred_chunk_size(BUF_SIZE),
+        BUF_SIZE * 3 + BUF_SIZE / 10,
+        BUF_SIZE / 2,
+        b,
+    );
+}
+
+#[bench]
+fn pressured_in_310_out_50_percent_straight(b: &mut Bencher) {
+    pump_pressured(
+        BytesMut::with_capacity(BUF_SIZE),
+        BUF_SIZE * 3 + BUF_SIZE / 10,
+        BUF_SIZE / 2,
+        b,
+    );
+}
+
+#[bench]
+fn pressured_in_350_out_50_percent_chunked(b: &mut Bencher) {
+    pump_pressured(
+        ChunkedBytes::with_preferred_chunk_size(BUF_SIZE),
+        BUF_SIZE * 3 + BUF_SIZE / 2,
+        BUF_SIZE / 2,
+        b,
+    );
+}
+
+#[bench]
+fn pressured_in_350_out_50_percent_straight(b: &mut Bencher) {
+    pump_pressured(
+        BytesMut::with_capacity(BUF_SIZE),
+        BUF_SIZE * 3 + BUF_SIZE / 2,
+        BUF_SIZE / 2,
+        b,
+    );
+}
+
+#[bench]
+fn pressured_in_900_out_50_percent_chunked(b: &mut Bencher) {
+    pump_pressured(
+        ChunkedBytes::with_preferred_chunk_size(BUF_SIZE),
+        BUF_SIZE * 9,
+        BUF_SIZE / 2,
+        b,
+    );
+}
+
+#[bench]
+fn pressured_in_900_out_50_percent_straight(b: &mut Bencher) {
+    pump_pressured(
+        BytesMut::with_capacity(BUF_SIZE),
+        BUF_SIZE * 9,
+        BUF_SIZE / 2,
+        b,
+    );
+}
+
+#[bench]
+fn pressured_in_150_out_100_percent_chunked(b: &mut Bencher) {
     pump_pressured(
         ChunkedBytes::with_preferred_chunk_size(BUF_SIZE),
         BUF_SIZE + BUF_SIZE / 2,
@@ -170,7 +270,7 @@ fn pressured_150_percent_chunked(b: &mut Bencher) {
 }
 
 #[bench]
-fn pressured_150_percent_straight(b: &mut Bencher) {
+fn pressured_in_150_out_100_percent_straight(b: &mut Bencher) {
     pump_pressured(
         BytesMut::with_capacity(BUF_SIZE),
         BUF_SIZE + BUF_SIZE / 2,
@@ -180,7 +280,7 @@ fn pressured_150_percent_straight(b: &mut Bencher) {
 }
 
 #[bench]
-fn pressured_200_percent_chunked(b: &mut Bencher) {
+fn pressured_in_200_out_100_percent_chunked(b: &mut Bencher) {
     pump_pressured(
         ChunkedBytes::with_preferred_chunk_size(BUF_SIZE),
         BUF_SIZE * 2,
@@ -190,7 +290,7 @@ fn pressured_200_percent_chunked(b: &mut Bencher) {
 }
 
 #[bench]
-fn pressured_200_percent_straight(b: &mut Bencher) {
+fn pressured_in_200_out_100_percent_straight(b: &mut Bencher) {
     pump_pressured(
         BytesMut::with_capacity(BUF_SIZE),
         BUF_SIZE * 2,
@@ -200,7 +300,7 @@ fn pressured_200_percent_straight(b: &mut Bencher) {
 }
 
 #[bench]
-fn pressured_210_percent_chunked(b: &mut Bencher) {
+fn pressured_in_210_out_100_percent_chunked(b: &mut Bencher) {
     pump_pressured(
         ChunkedBytes::with_preferred_chunk_size(BUF_SIZE),
         BUF_SIZE * 2 + BUF_SIZE / 10,
@@ -210,7 +310,7 @@ fn pressured_210_percent_chunked(b: &mut Bencher) {
 }
 
 #[bench]
-fn pressured_210_percent_straight(b: &mut Bencher) {
+fn pressured_in_210_out_100_percent_straight(b: &mut Bencher) {
     pump_pressured(
         BytesMut::with_capacity(BUF_SIZE),
         BUF_SIZE * 2 + BUF_SIZE / 10,
@@ -220,7 +320,7 @@ fn pressured_210_percent_straight(b: &mut Bencher) {
 }
 
 #[bench]
-fn pressured_300_percent_chunked(b: &mut Bencher) {
+fn pressured_in_300_out_100_percent_chunked(b: &mut Bencher) {
     pump_pressured(
         ChunkedBytes::with_preferred_chunk_size(BUF_SIZE),
         BUF_SIZE * 3,
@@ -230,7 +330,7 @@ fn pressured_300_percent_chunked(b: &mut Bencher) {
 }
 
 #[bench]
-fn pressured_300_percent_straight(b: &mut Bencher) {
+fn pressured_in_300_out_100_percent_straight(b: &mut Bencher) {
     pump_pressured(
         BytesMut::with_capacity(BUF_SIZE),
         BUF_SIZE * 3,
@@ -240,7 +340,7 @@ fn pressured_300_percent_straight(b: &mut Bencher) {
 }
 
 #[bench]
-fn pressured_900_percent_chunked(b: &mut Bencher) {
+fn pressured_in_900_out_100_percent_chunked(b: &mut Bencher) {
     pump_pressured(
         ChunkedBytes::with_profile(BUF_SIZE, 9),
         BUF_SIZE * 9,
@@ -250,7 +350,7 @@ fn pressured_900_percent_chunked(b: &mut Bencher) {
 }
 
 #[bench]
-fn pressured_900_percent_straight(b: &mut Bencher) {
+fn pressured_in_900_out_100_percent_straight(b: &mut Bencher) {
     pump_pressured(
         BytesMut::with_capacity(BUF_SIZE),
         BUF_SIZE * 9,
