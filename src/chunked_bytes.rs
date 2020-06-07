@@ -50,7 +50,7 @@ impl ChunkedBytes {
     /// Creates a new `ChunkedBytes` container with the given chunk size
     /// to prefer.
     #[inline]
-    pub fn with_preferred_chunk_size(chunk_size: usize) -> Self {
+    pub fn with_chunk_size_hint(chunk_size: usize) -> Self {
         ChunkedBytes {
             chunk_size,
             ..Default::default()
@@ -79,7 +79,7 @@ impl ChunkedBytes {
     /// configured value, due to the allocation strategy used internally by
     /// the implementation and also depending on the pattern of usage.
     #[inline]
-    pub fn preferred_chunk_size(&self) -> usize {
+    pub fn chunk_size_hint(&self) -> usize {
         self.chunk_size
     }
 
@@ -338,7 +338,7 @@ mod tests {
 
     #[test]
     fn reserve_does_not_grow_staging_buffer() {
-        let mut buf = ChunkedBytes::with_preferred_chunk_size(8);
+        let mut buf = ChunkedBytes::with_chunk_size_hint(8);
         let cap = buf.bytes_mut().len();
         assert!(cap >= 8);
 

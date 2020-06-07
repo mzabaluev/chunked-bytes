@@ -77,7 +77,7 @@ impl<T: AsyncWrite> Sink<Message> for EncodingWriter<T> {
         // Here's a way to provide back-pressure on the sink:
         // rather than allowing the buffer to grow, drain it until
         // there is only the staging buffer with room to fill.
-        while this.buf.remaining() >= this.buf.preferred_chunk_size() {
+        while this.buf.remaining() >= this.buf.chunk_size_hint() {
             ready!(this.out.as_mut().poll_write_buf(cx, this.buf))?;
         }
         Poll::Ready(Ok(()))

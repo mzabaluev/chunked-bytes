@@ -46,7 +46,7 @@
 //!     let mut sender = TcpStream::connect(server_addr).await?;
 //!
 //!     let buf_size = sender.send_buffer_size()?;
-//!     let mut buf = ChunkedBytes::with_preferred_chunk_size(buf_size);
+//!     let mut buf = ChunkedBytes::with_chunk_size_hint(buf_size);
 //!
 //!     buf.put("I ".as_bytes());
 //!     buf.push_chunk(Bytes::from("🖤 "));

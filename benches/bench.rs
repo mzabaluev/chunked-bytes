@@ -87,7 +87,7 @@ fn pump_through_clean<B: Buf + BufMut>(b: &mut Bencher, mut buf: B) {
 
 #[bench]
 fn clean_pass_through_chunked(b: &mut Bencher) {
-    pump_through_clean(b, ChunkedBytes::with_preferred_chunk_size(BUF_SIZE));
+    pump_through_clean(b, ChunkedBytes::with_chunk_size_hint(BUF_SIZE));
 }
 
 #[bench]
@@ -112,7 +112,7 @@ fn pump_through_staggered<B: Buf + BufMut>(
 fn staggered_copy_back_chunked(b: &mut Bencher) {
     pump_through_staggered(
         b,
-        ChunkedBytes::with_preferred_chunk_size(BUF_SIZE),
+        ChunkedBytes::with_chunk_size_hint(BUF_SIZE),
         BUF_SIZE * 2 / 3,
     );
 }
@@ -130,7 +130,7 @@ fn staggered_copy_back_straight(b: &mut Bencher) {
 fn staggered_new_alloc_chunked(b: &mut Bencher) {
     pump_through_staggered(
         b,
-        ChunkedBytes::with_preferred_chunk_size(BUF_SIZE),
+        ChunkedBytes::with_chunk_size_hint(BUF_SIZE),
         (BUF_SIZE * 2 + 2) / 3 + 1,
     );
 }
@@ -162,7 +162,7 @@ fn pump_pressured<B: Buf + BufMut>(
 #[bench]
 fn pressured_in_50_out_50_percent_chunked(b: &mut Bencher) {
     pump_pressured(
-        ChunkedBytes::with_preferred_chunk_size(BUF_SIZE),
+        ChunkedBytes::with_chunk_size_hint(BUF_SIZE),
         BUF_SIZE / 2,
         BUF_SIZE / 2,
         b,
@@ -182,7 +182,7 @@ fn pressured_in_50_out_50_percent_straight(b: &mut Bencher) {
 #[bench]
 fn pressured_in_300_out_50_percent_chunked(b: &mut Bencher) {
     pump_pressured(
-        ChunkedBytes::with_preferred_chunk_size(BUF_SIZE),
+        ChunkedBytes::with_chunk_size_hint(BUF_SIZE),
         BUF_SIZE * 3,
         BUF_SIZE / 2,
         b,
@@ -202,7 +202,7 @@ fn pressured_in_300_out_50_percent_straight(b: &mut Bencher) {
 #[bench]
 fn pressured_in_310_out_50_percent_chunked(b: &mut Bencher) {
     pump_pressured(
-        ChunkedBytes::with_preferred_chunk_size(BUF_SIZE),
+        ChunkedBytes::with_chunk_size_hint(BUF_SIZE),
         BUF_SIZE * 3 + BUF_SIZE / 10,
         BUF_SIZE / 2,
         b,
@@ -222,7 +222,7 @@ fn pressured_in_310_out_50_percent_straight(b: &mut Bencher) {
 #[bench]
 fn pressured_in_350_out_50_percent_chunked(b: &mut Bencher) {
     pump_pressured(
-        ChunkedBytes::with_preferred_chunk_size(BUF_SIZE),
+        ChunkedBytes::with_chunk_size_hint(BUF_SIZE),
         BUF_SIZE * 3 + BUF_SIZE / 2,
         BUF_SIZE / 2,
         b,
@@ -242,7 +242,7 @@ fn pressured_in_350_out_50_percent_straight(b: &mut Bencher) {
 #[bench]
 fn pressured_in_900_out_50_percent_chunked(b: &mut Bencher) {
     pump_pressured(
-        ChunkedBytes::with_preferred_chunk_size(BUF_SIZE),
+        ChunkedBytes::with_chunk_size_hint(BUF_SIZE),
         BUF_SIZE * 9,
         BUF_SIZE / 2,
         b,
@@ -262,7 +262,7 @@ fn pressured_in_900_out_50_percent_straight(b: &mut Bencher) {
 #[bench]
 fn pressured_in_150_out_100_percent_chunked(b: &mut Bencher) {
     pump_pressured(
-        ChunkedBytes::with_preferred_chunk_size(BUF_SIZE),
+        ChunkedBytes::with_chunk_size_hint(BUF_SIZE),
         BUF_SIZE + BUF_SIZE / 2,
         BUF_SIZE,
         b,
@@ -282,7 +282,7 @@ fn pressured_in_150_out_100_percent_straight(b: &mut Bencher) {
 #[bench]
 fn pressured_in_200_out_100_percent_chunked(b: &mut Bencher) {
     pump_pressured(
-        ChunkedBytes::with_preferred_chunk_size(BUF_SIZE),
+        ChunkedBytes::with_chunk_size_hint(BUF_SIZE),
         BUF_SIZE * 2,
         BUF_SIZE,
         b,
@@ -302,7 +302,7 @@ fn pressured_in_200_out_100_percent_straight(b: &mut Bencher) {
 #[bench]
 fn pressured_in_210_out_100_percent_chunked(b: &mut Bencher) {
     pump_pressured(
-        ChunkedBytes::with_preferred_chunk_size(BUF_SIZE),
+        ChunkedBytes::with_chunk_size_hint(BUF_SIZE),
         BUF_SIZE * 2 + BUF_SIZE / 10,
         BUF_SIZE,
         b,
@@ -322,7 +322,7 @@ fn pressured_in_210_out_100_percent_straight(b: &mut Bencher) {
 #[bench]
 fn pressured_in_300_out_100_percent_chunked(b: &mut Bencher) {
     pump_pressured(
-        ChunkedBytes::with_preferred_chunk_size(BUF_SIZE),
+        ChunkedBytes::with_chunk_size_hint(BUF_SIZE),
         BUF_SIZE * 3,
         BUF_SIZE,
         b,
