@@ -100,19 +100,19 @@ impl ChunkedBytes {
 
     /// Appends a `Bytes` slice to the container without copying the data.
     ///
-    /// If `chunk` is empty, this method does nothing. Otherwise,
+    /// If `src` is empty, this method does nothing. Otherwise,
     /// if there are any bytes currently in the staging buffer, they are split
-    /// to form a complete chunk. Next, `chunk` is appended as a sequence of
+    /// to form a complete chunk. Next, `src` is appended as a sequence of
     /// chunks, split if necessary so that all chunks except the last are
     /// sized to the chunk size limit.
-    pub fn put_bytes(&mut self, mut chunk: Bytes) {
-        if !chunk.is_empty() {
+    pub fn put_bytes(&mut self, mut src: Bytes) {
+        if !src.is_empty() {
             self.flush();
             let chunk_size = self.inner.chunk_size();
-            while chunk.len() > chunk_size {
-                self.inner.push_chunk(chunk.split_to(chunk_size));
+            while src.len() > chunk_size {
+                self.inner.push_chunk(src.split_to(chunk_size));
             }
-            self.inner.push_chunk(chunk);
+            self.inner.push_chunk(src);
         }
     }
 
@@ -131,7 +131,7 @@ impl ChunkedBytes {
 
     /// Consumes the `ChunkedBytes` container to produce an iterator over
     /// its chunks. If there are bytes in the staging buffer, they are yielded
-    /// as the last chunk.
+    /// as the last src.
     ///
     /// The memory allocated for `IntoChunks` may be slightly more than the
     /// `ChunkedBytes` container it consumes. This is an infrequent side effect
