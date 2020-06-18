@@ -12,7 +12,7 @@
 //! [vectored output]: https://en.wikipedia.org/wiki/Vectored_I/O
 //!
 //! `ChunkedBytes` implements the traits `Buf` and `BufMut` for read and write
-//! access to the buffered data. It also provides the `push_chunk` method
+//! access to the buffered data. It also provides the `put_bytes` method
 //! for appending a `Bytes` slice to its queue of non-contiguous chunks without
 //! copying the data.
 //!
@@ -49,7 +49,7 @@
 //!     let mut buf = ChunkedBytes::with_chunk_size_hint(buf_size);
 //!
 //!     buf.put("I ".as_bytes());
-//!     buf.push_chunk(Bytes::from("🖤 "));
+//!     buf.put_bytes(Bytes::from("🖤 "));
 //!     buf.put_u32(0xc0ffee);
 //!
 //!     let bytes_written = sender.write_buf(&mut buf).await?;
@@ -66,8 +66,11 @@
 #![warn(rust_2018_idioms)]
 #![doc(test(no_crate_inject, attr(deny(warnings, rust_2018_idioms))))]
 
-mod chunked_bytes;
+pub mod loosely;
+pub mod strictly;
+
+mod chunked;
 mod iter;
 
-pub use self::chunked_bytes::ChunkedBytes;
 pub use self::iter::{DrainChunks, IntoChunks};
+pub use self::loosely::ChunkedBytes;

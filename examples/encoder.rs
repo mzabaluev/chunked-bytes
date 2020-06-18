@@ -36,7 +36,7 @@ fn encode_message(buf: &mut ChunkedBytes, msg: Message) {
     buf.put_u32(3);
     buf.put_u64(msg.blob_field.len() as u64);
     // Take the bytes without copying
-    buf.push_chunk(msg.blob_field);
+    buf.put_bytes(msg.blob_field);
 }
 
 #[pin_project]

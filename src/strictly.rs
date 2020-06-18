@@ -1,13 +1,14 @@
+//! Buffer with a strict limit on the chunk sizes.
+
+use super::chunked::{AdvanceStopped, Inner};
 use crate::{DrainChunks, IntoChunks};
 
-use bytes::{Buf, BufMut, Bytes, BytesMut};
+use bytes::{Buf, BufMut, Bytes};
 
-use std::collections::VecDeque;
+use std::cmp::min;
 use std::fmt;
 use std::io::IoSlice;
 use std::mem::MaybeUninit;
-
-const DEFAULT_CHUNK_SIZE: usize = 4096;
 
 /// A non-contiguous buffer for efficient serialization of data structures.
 ///
@@ -18,47 +19,42 @@ const DEFAULT_CHUNK_SIZE: usize = 4096;
 /// buffer reaches a certain configured chunk size, the buffer content is
 /// split off to form a new chunk.
 ///
+/// Unlike `loosely::ChunkedBytes`, this variant of the `ChunkedBytes` container
+/// never produces chunks larger than the configured size. This comes at a cost
+/// of increased processing overhead and sometimes more allocated memory needed
+/// to keep the buffered data, so the applications that don't benefit from
+/// the strict limit should prefer `loosely::ChunkedBytes`.
+///
 /// Refer to the documentation on the methods available for `ChunkedBytes`,
 /// including the methods of traits `Buf` and `BufMut`, for details on working
 /// with this container.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ChunkedBytes {
-    staging: BytesMut,
-    chunks: VecDeque<Bytes>,
-    chunk_size: usize,
-}
-
-impl Default for ChunkedBytes {
-    #[inline]
-    fn default() -> Self {
-        ChunkedBytes {
-            staging: BytesMut::new(),
-            chunks: VecDeque::new(),
-            chunk_size: DEFAULT_CHUNK_SIZE,
-        }
-    }
+    inner: Inner,
+    // Maintains own capacity counter because `BytesMut` can't guarantee
+    // the exact requested capacity.
+    cap: usize,
 }
 
 impl ChunkedBytes {
-    /// Creates a new `ChunkedBytes` container with the preferred chunk size
+    /// Creates a new `ChunkedBytes` container with the chunk size limit
     /// set to a default value.
     #[inline]
     pub fn new() -> Self {
         Default::default()
     }
 
-    /// Creates a new `ChunkedBytes` container with the given chunk size
-    /// to prefer.
+    /// Creates a new `ChunkedBytes` container with the given chunk size limit.
     #[inline]
-    pub fn with_chunk_size_hint(chunk_size: usize) -> Self {
+    pub fn with_chunk_size_limit(chunk_size: usize) -> Self {
         ChunkedBytes {
-            chunk_size,
-            ..Default::default()
+            inner: Inner::with_chunk_size(chunk_size),
+            cap: 0,
         }
     }
 
     /// The fully detailed constructor for `ChunkedBytes`.
-    /// The preferred chunk size is given in `chunk_size`, and an upper
+    /// The chunk size limit is given in `chunk_size`, and an upper
     /// estimate of the number of chunks this container could be expected to
     /// have at any moment of time should be given in `chunking_capacity`.
     /// More chunks can still be held, but this may cause reallocations of
@@ -66,28 +62,27 @@ impl ChunkedBytes {
     #[inline]
     pub fn with_profile(chunk_size: usize, chunking_capacity: usize) -> Self {
         ChunkedBytes {
-            staging: BytesMut::new(),
-            chunks: VecDeque::with_capacity(chunking_capacity),
-            chunk_size,
+            inner: Inner::with_profile(chunk_size, chunking_capacity),
+            cap: 0,
         }
     }
 
-    /// Returns the size this `ChunkedBytes` container uses as the threshold
+    /// Returns the size this `ChunkedBytes` container uses as the limit
     /// for splitting off complete chunks.
     ///
-    /// Note that the size of produced chunks may be larger or smaller than the
+    /// Note that the size of produced chunks may be smaller than the
     /// configured value, due to the allocation strategy used internally by
     /// the implementation and also depending on the pattern of usage.
     #[inline]
-    pub fn chunk_size_hint(&self) -> usize {
-        self.chunk_size
+    pub fn chunk_size_limit(&self) -> usize {
+        self.inner.chunk_size()
     }
 
     /// Returns true if the `ChunkedBytes` container has no complete chunks
     /// and the staging buffer is empty.
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.chunks.is_empty() && self.staging.is_empty()
+        self.inner.is_empty()
     }
 
     /// Splits any bytes that are currently in the staging buffer into a new
@@ -99,22 +94,25 @@ impl ChunkedBytes {
     /// position.
     #[inline]
     pub fn flush(&mut self) {
-        if !self.staging.is_empty() {
-            let bytes = self.staging.split().freeze();
-            self.chunks.push_back(bytes)
-        }
+        debug_assert!(self.inner.staging_len() <= self.inner.chunk_size());
+        self.inner.flush()
     }
 
     /// Appends a `Bytes` slice to the container without copying the data.
     ///
-    /// If there are any bytes currently in the staging buffer, they are split
-    /// to form a complete chunk. Next, the given slice is appended as the
-    /// next chunk.
-    #[inline]
-    pub fn push_chunk(&mut self, chunk: Bytes) {
+    /// If `chunk` is empty, this method does nothing. Otherwise,
+    /// if there are any bytes currently in the staging buffer, they are split
+    /// to form a complete chunk. Next, `chunk` is appended as a sequence of
+    /// chunks, split if necessary so that all chunks except the last are
+    /// sized to the chunk size limit.
+    pub fn put_bytes(&mut self, mut chunk: Bytes) {
         if !chunk.is_empty() {
             self.flush();
-            self.chunks.push_back(chunk);
+            let chunk_size = self.inner.chunk_size();
+            while chunk.len() > chunk_size {
+                self.inner.push_chunk(chunk.split_to(chunk_size));
+            }
+            self.inner.push_chunk(chunk);
         }
     }
 
@@ -128,7 +126,7 @@ impl ChunkedBytes {
     /// expires (e.g. due to `std::mem::forget`).
     #[inline]
     pub fn drain_chunks(&mut self) -> DrainChunks<'_> {
-        DrainChunks::new(self.chunks.drain(..))
+        self.inner.drain_chunks()
     }
 
     /// Consumes the `ChunkedBytes` container to produce an iterator over
@@ -139,85 +137,44 @@ impl ChunkedBytes {
     /// `ChunkedBytes` container it consumes. This is an infrequent side effect
     /// of making the internal state efficient in general for iteration.
     #[inline]
-    pub fn into_chunks(mut self) -> IntoChunks {
-        if !self.staging.is_empty() {
-            self.chunks.push_back(self.staging.freeze());
-        }
-        IntoChunks::new(self.chunks.into_iter())
-    }
-
-    fn reserve_staging(&mut self) {
-        let cap = self.staging.capacity();
-        debug_assert_eq!(cap, self.staging.len());
-
-        // We are here when either:
-        // a) the buffer has never been used and never allocated;
-        // b) the producer has filled a previously allocated buffer,
-        //    and the consumer may have read a part or the whole of it.
-        // Our goal is to reserve space in the staging buffer without
-        // forcing it to reallocate to a larger capacity.
-        //
-        // To reuse the allocation of `BytesMut` in the vector form with
-        // the offset `off` and remaining capacity `cap` while reserving
-        // `additional` bytes, the following needs to apply:
-        //
-        // off >= additional && off >= cap / 2
-        //
-        // We have:
-        //
-        // off + cap == allocated_size >= chunk_size
-        //
-        // From this, we can derive the following condition check:
-        let cutoff = cap.saturating_add(cap / 2);
-        let additional = if cutoff > self.chunk_size {
-            // Alas, the bytes still in the staging buffer are likely to
-            // necessitate a new allocation. Split them off to a chunk
-            // first, so that the new allocation does not have to copy
-            // them and the total required capacity is `self.chunk_size`.
-            self.flush();
-            self.chunk_size
-        } else {
-            // This amount will get BytesMut to reuse the allocation and
-            // copy back the bytes if there are no chunks left unconsumed.
-            // Otherwise, it will reallocate to its previous capacity.
-            // A virgin buffer will be allocated to `self.chunk_size`.
-            self.chunk_size - cap
-        };
-        self.staging.reserve(additional);
+    pub fn into_chunks(self) -> IntoChunks {
+        debug_assert!(self.inner.staging_len() <= self.inner.chunk_size());
+        self.inner.into_chunks()
     }
 }
 
 impl BufMut for ChunkedBytes {
     #[inline]
     fn remaining_mut(&self) -> usize {
-        self.staging.remaining_mut()
+        self.inner.remaining_mut()
     }
 
     #[inline]
     unsafe fn advance_mut(&mut self, cnt: usize) {
-        self.staging.advance_mut(cnt);
+        assert!(
+            self.inner.staging_len() + cnt <= self.cap,
+            "new_len = {}; capacity = {}",
+            self.inner.staging_len() + cnt,
+            self.cap
+        );
+        self.inner.advance_mut(cnt);
     }
 
-    /// Returns a mutable slice of unwritten bytes available in
-    /// the staging buffer, starting at the current writing position.
-    ///
-    /// The length of the slice may be larger than the preferred chunk
-    /// size due to the allocation strategy used internally by
-    /// the implementation.
-    #[inline]
     fn bytes_mut(&mut self) -> &mut [MaybeUninit<u8>] {
-        if self.staging.len() == self.staging.capacity() {
-            self.reserve_staging();
+        if self.inner.staging_len() == self.cap {
+            let new_cap = self.inner.reserve_staging();
+            self.cap = min(new_cap, self.chunk_size_limit())
         }
-        self.staging.bytes_mut()
+        let slice = self.inner.bytes_mut();
+        let len = min(slice.len(), self.cap);
+        &mut slice[..len]
     }
 }
 
 impl Buf for ChunkedBytes {
+    #[inline]
     fn remaining(&self) -> usize {
-        self.chunks
-            .iter()
-            .fold(self.staging.len(), |sum, chunk| sum + chunk.len())
+        self.inner.remaining()
     }
 
     #[inline]
@@ -233,11 +190,7 @@ impl Buf for ChunkedBytes {
     /// implementations of the `AsyncWrite::poll_write_buf` method.
     #[inline]
     fn bytes(&self) -> &[u8] {
-        if let Some(chunk) = self.chunks.front() {
-            chunk
-        } else {
-            &self.staging
-        }
+        self.inner.bytes()
     }
 
     /// Advances the reading position by `cnt`, dropping the `Bytes` references
@@ -250,23 +203,11 @@ impl Buf for ChunkedBytes {
     ///
     /// This function may panic when `cnt > self.remaining()`.
     ///
-    fn advance(&mut self, mut cnt: usize) {
-        loop {
-            match self.chunks.front_mut() {
-                None => {
-                    self.staging.advance(cnt);
-                    return;
-                }
-                Some(chunk) => {
-                    let len = chunk.len();
-                    if cnt < len {
-                        chunk.advance(cnt);
-                        return;
-                    } else {
-                        cnt -= len;
-                        self.chunks.pop_front();
-                    }
-                }
+    fn advance(&mut self, cnt: usize) {
+        match self.inner.advance(cnt) {
+            AdvanceStopped::InChunk => {}
+            AdvanceStopped::InStaging(adv) => {
+                self.cap -= adv;
             }
         }
     }
@@ -275,41 +216,14 @@ impl Buf for ChunkedBytes {
     /// the bytes in the staging buffer if any remain and there is
     /// another unfilled entry left in `dst`. Returns the number of `IoSlice`
     /// entries filled.
+    #[inline]
     fn bytes_vectored<'a>(&'a self, dst: &mut [IoSlice<'a>]) -> usize {
-        let n = {
-            let zipped = dst.iter_mut().zip(self.chunks.iter());
-            let len = zipped.len();
-            for (io_slice, chunk) in zipped {
-                *io_slice = IoSlice::new(chunk);
-            }
-            len
-        };
-
-        if n < dst.len() && !self.staging.is_empty() {
-            dst[n] = IoSlice::new(&self.staging);
-            n + 1
-        } else {
-            n
-        }
+        self.inner.bytes_vectored(dst)
     }
 
+    #[inline]
     fn to_bytes(&mut self) -> Bytes {
-        match self.chunks.pop_front() {
-            None => self.staging.split().freeze(),
-            Some(chunk) => {
-                if self.is_empty() {
-                    return chunk;
-                }
-                let cap = chunk.len() + self.remaining();
-                let mut buf = BytesMut::with_capacity(cap);
-                buf.put(chunk);
-                while let Some(chunk) = self.chunks.pop_front() {
-                    buf.put(chunk);
-                }
-                buf.put(self.staging.split());
-                buf.freeze()
-            }
-        }
+        self.inner.take_bytes()
     }
 }
 
@@ -338,7 +252,7 @@ mod tests {
 
     #[test]
     fn reserve_does_not_grow_staging_buffer() {
-        let mut buf = ChunkedBytes::with_chunk_size_hint(8);
+        let mut buf = ChunkedBytes::with_chunk_size_limit(8);
         let cap = buf.bytes_mut().len();
         assert!(cap >= 8);
 
@@ -366,7 +280,7 @@ mod tests {
         buf.advance(cap - 5);
         buf.put(&[0; 5][..]);
         assert_eq!(buf.bytes_mut().len(), cap - 5);
-        assert_eq!(buf.staging.capacity(), cap);
+        assert_eq!(buf.inner.staging_capacity(), cap);
         assert!(
             buf.drain_chunks().next().is_none(),
             "expected no chunks to be flushed"

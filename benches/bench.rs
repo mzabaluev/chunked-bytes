@@ -364,7 +364,7 @@ fn pass_bytes_through_chunked(b: &mut Bencher, chunk_size: usize, cnt: usize) {
     b.iter(|| {
         let mut salami = Bytes::from(vec![0; chunk_size * cnt]);
         for _ in 0..cnt {
-            buf.push_chunk(salami.split_to(chunk_size));
+            buf.put_bytes(salami.split_to(chunk_size));
         }
         while buf.has_remaining() {
             consume_vectored(&mut buf, BUF_SIZE);
