@@ -1,6 +1,6 @@
 [package]
 name = "chunked-bytes"
-version = "0.1.0-beta.3"
+version = "0.1.0-beta.4"
 license = "MIT"
 authors = ["Mikhail Zabaluev <mikhail.zabaluev@gmail.com>"]
 edition = "2018"
