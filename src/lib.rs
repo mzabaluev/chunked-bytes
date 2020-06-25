@@ -74,3 +74,6 @@ mod iter;
 
 pub use self::iter::{DrainChunks, IntoChunks};
 pub use self::loosely::ChunkedBytes;
+
+#[cfg(test)]
+mod tests;

@@ -85,6 +85,11 @@ impl ChunkedBytes {
         self.inner.is_empty()
     }
 
+    #[cfg(test)]
+    pub fn staging_capacity(&self) -> usize {
+        self.inner.staging_capacity()
+    }
+
     /// Splits any bytes that are currently in the staging buffer into a new
     /// complete chunk.
     /// If the staging buffer is empty, this method does nothing.
@@ -243,47 +248,5 @@ impl fmt::Write for ChunkedBytes {
     #[inline]
     fn write_fmt(&mut self, args: fmt::Arguments<'_>) -> fmt::Result {
         fmt::write(self, args)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn reserve_does_not_grow_staging_buffer() {
-        let mut buf = ChunkedBytes::with_chunk_size_limit(8);
-        let cap = buf.bytes_mut().len();
-        assert!(cap >= 8);
-
-        buf.put(&vec![0; cap][..]);
-        assert_eq!(buf.bytes_mut().len(), cap);
-        {
-            let mut chunks = buf.drain_chunks();
-            let chunk = chunks.next().expect("expected a chunk to be flushed");
-            assert_eq!(chunk.len(), cap);
-            assert!(chunks.next().is_none());
-        }
-
-        buf.put(&vec![0; cap - 4][..]);
-        buf.advance(cap - 6);
-        buf.put(&[0; 4][..]);
-        assert_eq!(buf.bytes_mut().len(), cap);
-        {
-            let mut chunks = buf.drain_chunks();
-            let chunk = chunks.next().expect("expected a chunk to be flushed");
-            assert_eq!(chunk.len(), 6);
-            assert!(chunks.next().is_none());
-        }
-
-        buf.put(&vec![0; cap - 5][..]);
-        buf.advance(cap - 5);
-        buf.put(&[0; 5][..]);
-        assert_eq!(buf.bytes_mut().len(), cap - 5);
-        assert_eq!(buf.inner.staging_capacity(), cap);
-        assert!(
-            buf.drain_chunks().next().is_none(),
-            "expected no chunks to be flushed"
-        );
     }
 }
