@@ -19,7 +19,7 @@ bytes = "0.5"
 
 [dev-dependencies]
 futures = "0.3"
-generic-tests = "0.1.0-beta.1"
+generic-tests = "0.1.0"
 pin-project = "0.4"
 
 [dev-dependencies.tokio]
