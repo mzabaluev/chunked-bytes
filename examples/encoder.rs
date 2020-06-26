@@ -107,10 +107,10 @@ impl<T: AsyncWrite> Sink<Message> for EncodingWriter<T> {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> io::Result<()> {
     // Pretend we received the data from input into a Bytes handle
     let mut blob = BytesMut::with_capacity(8000);
-    io::repeat(b'\xa5').read_buf(&mut blob).await.unwrap();
+    io::repeat(b'\xa5').read_buf(&mut blob).await?;
 
     let msg = Message {
         int_field: 42,
@@ -121,5 +121,6 @@ async fn main() {
     let sink = io::sink();
     let mut writer = EncodingWriter::new(sink);
 
-    writer.send(msg).await.unwrap();
+    writer.send(msg).await?;
+    Ok(())
 }
