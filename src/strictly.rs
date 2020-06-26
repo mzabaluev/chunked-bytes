@@ -223,6 +223,7 @@ impl Buf for ChunkedBytes {
     /// entries filled.
     #[inline]
     fn bytes_vectored<'a>(&'a self, dst: &mut [IoSlice<'a>]) -> usize {
+        debug_assert!(self.inner.staging_len() <= self.inner.chunk_size());
         self.inner.bytes_vectored(dst)
     }
 
