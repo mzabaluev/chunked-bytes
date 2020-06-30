@@ -266,6 +266,32 @@ mod benches {
         pass_bytes_through::<B>(b, BUF_SIZE * 2, 2);
     }
 
+    fn mix_slice_and_bytes<B: BenchBuf>(
+        b: &mut Bencher,
+        slice_len: usize,
+        bytes_len: usize,
+    ) {
+        let mut buf = B::construct();
+        let v = vec![0; slice_len];
+        b.iter(|| {
+            buf.put_slice(&v);
+            buf.put_bytes(Bytes::from(vec![0; bytes_len]));
+            while buf.has_remaining() {
+                buf.consume_vectored(BUF_SIZE);
+            }
+        });
+    }
+
+    #[bench]
+    fn mix_slice_and_bytes_32_32<B: BenchBuf>(b: &mut Bencher) {
+        mix_slice_and_bytes::<B>(b, 32, 32)
+    }
+
+    #[bench]
+    fn mix_slice_and_bytes_32_4096<B: BenchBuf>(b: &mut Bencher) {
+        mix_slice_and_bytes::<B>(b, 32, 4096)
+    }
+
     #[instantiate_tests(<loosely::ChunkedBytes>)]
     mod loosely_chunked_bytes {}
 
