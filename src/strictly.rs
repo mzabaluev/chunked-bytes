@@ -110,6 +110,13 @@ impl ChunkedBytes {
     /// to form a complete chunk. Next, `src` is appended as a sequence of
     /// chunks, split if necessary so that all chunks except the last are
     /// sized to the chunk size limit.
+    ///
+    /// # Performance Notes
+    ///
+    /// For a small slice originating from a buffer that is not split
+    /// or shared between other `Bytes` instances, copying the bytes with
+    /// `BufMut::put_slice` may be faster than the overhead of
+    /// atomic reference counting induced by use of this method.
     pub fn put_bytes(&mut self, mut src: Bytes) {
         if !src.is_empty() {
             self.flush();

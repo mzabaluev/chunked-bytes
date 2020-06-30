@@ -102,6 +102,13 @@ impl ChunkedBytes {
     /// if there are any bytes currently in the staging buffer, they are split
     /// to form a complete chunk. Next, the given slice is appended as the
     /// next chunk.
+    ///
+    /// # Performance Notes
+    ///
+    /// For a small slice originating from a buffer that is not split
+    /// or shared between other `Bytes` instances, copying the bytes with
+    /// `BufMut::put_slice` may be faster than the overhead of
+    /// atomic reference counting induced by use of this method.
     #[inline]
     pub fn put_bytes(&mut self, chunk: Bytes) {
         if !chunk.is_empty() {
