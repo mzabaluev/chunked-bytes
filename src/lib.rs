@@ -19,31 +19,40 @@
 //! # Examples
 //!
 //! ```
-//! use bytes::{BufMut, Bytes};
+//! use bytes::{Buf, BufMut, Bytes};
 //! use chunked_bytes::ChunkedBytes;
-//! use std::net::SocketAddr;
-//! use tokio::io::AsyncWriteExt;
-//! use tokio::net::{TcpListener, TcpStream};
-//! use tokio::task::JoinHandle;
-//! use tokio::prelude::*;
+//! use std::io::{self, IoSlice, Read, Write};
+//! use std::net::{SocketAddr, TcpListener, TcpStream, Shutdown};
+//! use std::thread;
 //!
-//! #[tokio::main]
-//! async fn main() -> io::Result<()> {
+//! fn write_vectored<W: Write>(
+//!     buf: &mut ChunkedBytes,
+//!     mut out: W,
+//! ) -> io::Result<usize> {
+//!     let mut io_bufs = [IoSlice::new(&[]); 32];
+//!     let io_vec_len = buf.bytes_vectored(&mut io_bufs);
+//!     let bytes_written = out.write_vectored(&io_bufs[..io_vec_len])?;
+//!     buf.advance(bytes_written);
+//!     Ok(bytes_written)
+//! }
+//!
+//! fn main() -> io::Result<()> {
 //!     const MESSAGE: &[u8] = b"I \xf0\x9f\x96\xa4 \x00\xc0\xff\xee";
 //!
 //!     let listen_addr = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
-//!     let server = TcpListener::bind(listen_addr).await?;
+//!     let server = TcpListener::bind(listen_addr)?;
 //!     let server_addr = server.local_addr()?;
 //!
-//!     let server_handle: JoinHandle<io::Result<()>> = tokio::spawn(async move {
-//!         let (mut receiver, _) = server.accept().await?;
-//!         let mut buf = Vec::with_capacity(64);
-//!         receiver.read_to_end(&mut buf).await?;
-//!         assert_eq!(buf.as_slice(), MESSAGE);
-//!         Ok(())
-//!     });
+//!     let server_handle: thread::JoinHandle<io::Result<()>> =
+//!         thread::spawn(move || {
+//!             let (mut receiver, _) = server.accept()?;
+//!             let mut buf = Vec::with_capacity(64);
+//!             receiver.read_to_end(&mut buf)?;
+//!             assert_eq!(buf.as_slice(), MESSAGE);
+//!             Ok(())
+//!         });
 //!
-//!     let mut sender = TcpStream::connect(server_addr).await?;
+//!     let mut sender = TcpStream::connect(server_addr)?;
 //!
 //!     let mut buf = ChunkedBytes::with_chunk_size_hint(4096);
 //!
@@ -51,11 +60,12 @@
 //!     buf.put_bytes(Bytes::from("🖤 "));
 //!     buf.put_u32(0xc0ffee);
 //!
-//!     let bytes_written = sender.write_buf(&mut buf).await?;
+//!     let bytes_written = write_vectored(&mut buf, &mut sender)?;
 //!     assert_eq!(bytes_written, MESSAGE.len());
-//!     AsyncWriteExt::shutdown(&mut sender).await?;
 //!
-//!     server_handle.await??;
+//!     sender.shutdown(Shutdown::Write)?;
+//!
+//!     server_handle.join().expect("server thread panicked")?;
 //!     Ok(())
 //! }
 
