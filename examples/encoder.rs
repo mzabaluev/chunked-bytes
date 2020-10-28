@@ -5,13 +5,13 @@
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use chunked_bytes::ChunkedBytes;
+use futures::io::{self, AsyncWrite, Error, IoSlice};
 use futures::prelude::*;
 use futures::ready;
 use futures::Sink;
 use pin_project::pin_project;
-use tokio::io::{self, AsyncWrite, Error};
-use tokio::prelude::*;
 
+use std::iter::{self, FromIterator};
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
@@ -54,13 +54,27 @@ impl<T: AsyncWrite> EncodingWriter<T> {
         }
     }
 
-    fn poll_flush_buf(
+    fn poll_write_buf(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<Result<(), Error>> {
+        let mut io_bufs = [IoSlice::new(&[]); 16];
         let mut this = self.project();
-        while this.buf.has_remaining() {
-            ready!(this.out.as_mut().poll_write_buf(cx, this.buf))?;
+        let io_vec_len = this.buf.bytes_vectored(&mut io_bufs);
+        let bytes_written = ready!(this
+            .out
+            .as_mut()
+            .poll_write_vectored(cx, &io_bufs[..io_vec_len]))?;
+        this.buf.advance(bytes_written);
+        Poll::Ready(Ok(()))
+    }
+
+    fn poll_flush_buf(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Result<(), Error>> {
+        while self.as_mut().project().buf.has_remaining() {
+            ready!(self.as_mut().poll_write_buf(cx))?;
         }
         Poll::Ready(Ok(()))
     }
@@ -70,15 +84,15 @@ impl<T: AsyncWrite> Sink<Message> for EncodingWriter<T> {
     type Error = Error;
 
     fn poll_ready(
-        self: Pin<&mut Self>,
+        mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<Result<(), Error>> {
-        let mut this = self.project();
         // Here's a way to provide back-pressure on the sink:
         // rather than allowing the buffer to grow, drain it until
         // there is only the staging buffer with room to fill.
-        while this.buf.remaining() >= this.buf.chunk_size_hint() {
-            ready!(this.out.as_mut().poll_write_buf(cx, this.buf))?;
+        let chunk_size = self.buf.chunk_size_hint();
+        while self.as_mut().buf.remaining() >= chunk_size {
+            ready!(self.as_mut().poll_write_buf(cx))?;
         }
         Poll::Ready(Ok(()))
     }
@@ -102,15 +116,14 @@ impl<T: AsyncWrite> Sink<Message> for EncodingWriter<T> {
         cx: &mut Context<'_>,
     ) -> Poll<Result<(), Error>> {
         ready!(self.as_mut().poll_flush_buf(cx))?;
-        self.project().out.poll_shutdown(cx)
+        self.project().out.poll_close(cx)
     }
 }
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
     // Pretend we received the data from input into a Bytes handle
-    let mut blob = BytesMut::with_capacity(8000);
-    io::repeat(b'\xa5').read_buf(&mut blob).await?;
+    let blob = BytesMut::from_iter(iter::repeat(b'\xa5').take(8000));
 
     let msg = Message {
         int_field: 42,

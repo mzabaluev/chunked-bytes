@@ -3,11 +3,11 @@
 use super::chunked::Inner;
 use crate::{DrainChunks, IntoChunks};
 
-use bytes::{Buf, BufMut, Bytes};
+use bytes::buf::{Buf, BufMut, UninitSlice};
+use bytes::Bytes;
 
 use std::fmt;
 use std::io::IoSlice;
-use std::mem::MaybeUninit;
 
 /// A non-contiguous buffer for efficient serialization of data structures.
 ///
@@ -143,7 +143,7 @@ impl ChunkedBytes {
     }
 }
 
-impl BufMut for ChunkedBytes {
+unsafe impl BufMut for ChunkedBytes {
     #[inline]
     fn remaining_mut(&self) -> usize {
         self.inner.remaining_mut()
@@ -161,7 +161,7 @@ impl BufMut for ChunkedBytes {
     /// size due to the allocation strategy used internally by
     /// the implementation.
     #[inline]
-    fn bytes_mut(&mut self) -> &mut [MaybeUninit<u8>] {
+    fn bytes_mut(&mut self) -> &mut UninitSlice {
         if self.inner.staging_len() == self.inner.staging_capacity() {
             self.inner.reserve_staging();
         }
@@ -216,8 +216,8 @@ impl Buf for ChunkedBytes {
     }
 
     #[inline]
-    fn to_bytes(&mut self) -> Bytes {
-        self.inner.take_bytes()
+    fn copy_to_bytes(&mut self, len: usize) -> Bytes {
+        self.inner.copy_to_bytes(len)
     }
 }
 

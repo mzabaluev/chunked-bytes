@@ -1,10 +1,11 @@
 use crate::{DrainChunks, IntoChunks};
 
-use bytes::{Buf, BufMut, Bytes, BytesMut};
+use bytes::buf::{Buf, BufMut, UninitSlice};
+use bytes::{Bytes, BytesMut};
 
+use std::cmp::min;
 use std::collections::VecDeque;
 use std::io::IoSlice;
-use std::mem::MaybeUninit;
 
 const DEFAULT_CHUNK_SIZE: usize = 4096;
 
@@ -147,7 +148,7 @@ impl Inner {
     }
 
     #[inline]
-    pub fn bytes_mut(&mut self) -> &mut [MaybeUninit<u8>] {
+    pub fn bytes_mut(&mut self) -> &mut UninitSlice {
         self.staging.bytes_mut()
     }
 
@@ -205,22 +206,30 @@ impl Inner {
         }
     }
 
-    pub fn take_bytes(&mut self) -> Bytes {
-        match self.chunks.pop_front() {
-            None => self.staging.split().freeze(),
-            Some(chunk) => {
-                if self.is_empty() {
-                    return chunk;
-                }
-                let cap = chunk.len() + self.remaining();
-                let mut buf = BytesMut::with_capacity(cap);
-                buf.put(chunk);
-                while let Some(chunk) = self.chunks.pop_front() {
-                    buf.put(chunk);
-                }
-                buf.put(self.staging.split());
-                buf.freeze()
-            }
+    pub fn copy_to_bytes(&mut self, len: usize) -> Bytes {
+        if self.chunks.is_empty() {
+            return self.staging.copy_to_bytes(len);
         }
+        let mut to_copy = min(len, self.remaining());
+        let mut buf = BytesMut::with_capacity(to_copy);
+        loop {
+            match self.chunks.front_mut() {
+                None => {
+                    buf.put((&mut self.staging).take(to_copy));
+                    break;
+                }
+                Some(chunk) => {
+                    if chunk.len() > to_copy {
+                        buf.put(chunk.take(to_copy));
+                        break;
+                    } else {
+                        buf.extend_from_slice(chunk);
+                        to_copy -= chunk.len();
+                    }
+                }
+            }
+            self.chunks.pop_front();
+        }
+        buf.freeze()
     }
 }

@@ -32,7 +32,7 @@
 //!     const MESSAGE: &[u8] = b"I \xf0\x9f\x96\xa4 \x00\xc0\xff\xee";
 //!
 //!     let listen_addr = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
-//!     let mut server = TcpListener::bind(listen_addr).await?;
+//!     let server = TcpListener::bind(listen_addr).await?;
 //!     let server_addr = server.local_addr()?;
 //!
 //!     let server_handle: JoinHandle<io::Result<()>> = tokio::spawn(async move {
@@ -45,8 +45,7 @@
 //!
 //!     let mut sender = TcpStream::connect(server_addr).await?;
 //!
-//!     let buf_size = sender.send_buffer_size()?;
-//!     let mut buf = ChunkedBytes::with_chunk_size_hint(buf_size);
+//!     let mut buf = ChunkedBytes::with_chunk_size_hint(4096);
 //!
 //!     buf.put("I ".as_bytes());
 //!     buf.put_bytes(Bytes::from("🖤 "));

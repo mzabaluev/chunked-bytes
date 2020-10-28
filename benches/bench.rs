@@ -9,7 +9,6 @@ use chunked_bytes::{loosely, strictly};
 
 use std::cmp::min;
 use std::io::{self, IoSlice, Write};
-use std::mem::MaybeUninit;
 use std::ptr;
 use test::Bencher;
 
@@ -26,7 +25,7 @@ trait BenchBuf: Buf + BufMut {
             let dst = self.bytes_mut();
             let write_len = min(cnt, dst.len());
             unsafe {
-                ptr::write_bytes(MaybeUninit::first_ptr_mut(dst), 0, write_len);
+                ptr::write_bytes(dst.as_mut_ptr(), 0, write_len);
                 self.advance_mut(write_len);
             }
             cnt -= write_len;
