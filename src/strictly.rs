@@ -198,8 +198,7 @@ impl Buf for ChunkedBytes {
     /// or the bytes in the staging buffer if there are no unconsumed chunks.
     ///
     /// It is more efficient to use `chunks_vectored` to gather all the disjoint
-    /// slices for vectored output, as is done in many specialized
-    /// implementations of the `AsyncWrite::poll_write_buf` method.
+    /// slices for vectored output.
     #[inline]
     fn chunk(&self) -> &[u8] {
         self.inner.chunk()
