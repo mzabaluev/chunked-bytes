@@ -22,7 +22,7 @@ trait BenchBuf: Buf + BufMut {
 
     fn produce(&mut self, mut cnt: usize) {
         while cnt != 0 {
-            let dst = self.bytes_mut();
+            let dst = self.chunk_mut();
             let write_len = min(cnt, dst.len());
             unsafe {
                 ptr::write_bytes(dst.as_mut_ptr(), 0, write_len);
@@ -36,7 +36,7 @@ trait BenchBuf: Buf + BufMut {
         // Do what TcpStream does
         loop {
             let mut slices = [IoSlice::new(&[]); 64];
-            let n = self.bytes_vectored(&mut slices);
+            let n = self.chunks_vectored(&mut slices);
             if n == 0 {
                 break;
             }
@@ -58,7 +58,7 @@ fn write_vectored_into_black_box<B: Buf>(buf: &mut B, mut cnt: usize) {
     // Do what TcpStream does
     loop {
         let mut slices = [IoSlice::new(&[]); 64];
-        let n = buf.bytes_vectored(&mut slices);
+        let n = buf.chunks_vectored(&mut slices);
         if n == 0 {
             break;
         }
@@ -131,7 +131,7 @@ mod benches {
     #[bench]
     fn clean_pass_through<B: BenchBuf>(b: &mut Bencher) {
         let mut buf = B::construct();
-        let prealloc_cap = buf.bytes_mut().len();
+        let prealloc_cap = buf.chunk_mut().len();
         b.iter(|| {
             buf.produce(prealloc_cap);
             buf.consume_vectored(prealloc_cap);
@@ -140,7 +140,7 @@ mod benches {
 
     fn pump_through_staggered<B: BenchBuf>(b: &mut Bencher, carry_over: usize) {
         let mut buf = B::construct();
-        let prealloc_cap = buf.bytes_mut().len();
+        let prealloc_cap = buf.chunk_mut().len();
         buf.produce(prealloc_cap);
         b.iter(|| {
             buf.consume_vectored(prealloc_cap - carry_over);
@@ -164,7 +164,7 @@ mod benches {
         b: &mut Bencher,
     ) {
         let mut buf = B::construct();
-        let prealloc_cap = buf.bytes_mut().len();
+        let prealloc_cap = buf.chunk_mut().len();
         b.iter(|| {
             buf.produce(inflow);
             while buf.remaining() >= prealloc_cap {

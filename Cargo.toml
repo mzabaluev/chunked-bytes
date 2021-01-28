@@ -1,6 +1,6 @@
 [package]
 name = "chunked-bytes"
-version = "0.2.0"
+version = "0.3.0-dev"
 license = "MIT"
 authors = ["Mikhail Zabaluev <mikhail.zabaluev@gmail.com>"]
 edition = "2018"
@@ -15,7 +15,7 @@ keywords = ["buffers", "rope", "zero-copy", "io"]
 categories = ["network-programming", "data-structures"]
 
 [dependencies]
-bytes = "0.6"
+bytes = "1.0"
 
 [dev-dependencies]
 futures = "0.3"
@@ -23,5 +23,5 @@ generic-tests = "0.1.1"
 pin-project = "1.0"
 
 [dev-dependencies.tokio]
-version = "0.3"
+version = "1.1"
 features = ["rt-multi-thread", "macros"]

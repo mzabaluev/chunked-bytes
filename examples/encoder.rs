@@ -1,7 +1,7 @@
 // This example demonstrates the primary use case for `ChunkedBytes`:
 // a buffer to serialize data of protocol messages without reallocations
 // and write it to output with efficiency of `AsyncWrite` implementations
-// that make use of `Buf::bytes_vectored`.
+// that make use of `Buf::chunks_vectored`.
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use chunked_bytes::ChunkedBytes;
@@ -60,7 +60,7 @@ impl<T: AsyncWrite> EncodingWriter<T> {
     ) -> Poll<Result<(), Error>> {
         let mut io_bufs = [IoSlice::new(&[]); 16];
         let mut this = self.project();
-        let io_vec_len = this.buf.bytes_vectored(&mut io_bufs);
+        let io_vec_len = this.buf.chunks_vectored(&mut io_bufs);
         let bytes_written = ready!(this
             .out
             .as_mut()

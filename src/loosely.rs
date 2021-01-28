@@ -161,11 +161,11 @@ unsafe impl BufMut for ChunkedBytes {
     /// size due to the allocation strategy used internally by
     /// the implementation.
     #[inline]
-    fn bytes_mut(&mut self) -> &mut UninitSlice {
+    fn chunk_mut(&mut self) -> &mut UninitSlice {
         if self.inner.staging_len() == self.inner.staging_capacity() {
             self.inner.reserve_staging();
         }
-        self.inner.bytes_mut()
+        self.inner.chunk_mut()
     }
 }
 
@@ -183,12 +183,12 @@ impl Buf for ChunkedBytes {
     /// Returns a slice of the bytes in the first extant complete chunk,
     /// or the bytes in the staging buffer if there are no unconsumed chunks.
     ///
-    /// It is more efficient to use `bytes_vectored` to gather all the disjoint
+    /// It is more efficient to use `chunks_vectored` to gather all the disjoint
     /// slices for vectored output, as is done in many specialized
     /// implementations of the `AsyncWrite::poll_write_buf` method.
     #[inline]
-    fn bytes(&self) -> &[u8] {
-        self.inner.bytes()
+    fn chunk(&self) -> &[u8] {
+        self.inner.chunk()
     }
 
     /// Advances the reading position by `cnt`, dropping the `Bytes` references
@@ -211,8 +211,8 @@ impl Buf for ChunkedBytes {
     /// another unfilled entry left in `dst`. Returns the number of `IoSlice`
     /// entries filled.
     #[inline]
-    fn bytes_vectored<'a>(&'a self, dst: &mut [IoSlice<'a>]) -> usize {
-        self.inner.bytes_vectored(dst)
+    fn chunks_vectored<'a>(&'a self, dst: &mut [IoSlice<'a>]) -> usize {
+        self.inner.chunks_vectored(dst)
     }
 
     #[inline]

@@ -148,8 +148,8 @@ impl Inner {
     }
 
     #[inline]
-    pub fn bytes_mut(&mut self) -> &mut UninitSlice {
-        self.staging.bytes_mut()
+    pub fn chunk_mut(&mut self) -> &mut UninitSlice {
+        self.staging.chunk_mut()
     }
 
     pub fn remaining(&self) -> usize {
@@ -159,11 +159,11 @@ impl Inner {
     }
 
     #[inline]
-    pub fn bytes(&self) -> &[u8] {
+    pub fn chunk(&self) -> &[u8] {
         if let Some(chunk) = self.chunks.front() {
             chunk
         } else {
-            &self.staging
+            self.staging.chunk()
         }
     }
 
@@ -188,7 +188,7 @@ impl Inner {
         }
     }
 
-    pub fn bytes_vectored<'a>(&'a self, dst: &mut [IoSlice<'a>]) -> usize {
+    pub fn chunks_vectored<'a>(&'a self, dst: &mut [IoSlice<'a>]) -> usize {
         let n = {
             let zipped = dst.iter_mut().zip(self.chunks.iter());
             let len = zipped.len();

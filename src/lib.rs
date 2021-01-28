@@ -30,7 +30,7 @@
 //!     mut out: W,
 //! ) -> io::Result<usize> {
 //!     let mut io_bufs = [IoSlice::new(&[]); 32];
-//!     let io_vec_len = buf.bytes_vectored(&mut io_bufs);
+//!     let io_vec_len = buf.chunks_vectored(&mut io_bufs);
 //!     let bytes_written = out.write_vectored(&io_bufs[..io_vec_len])?;
 //!     buf.advance(bytes_written);
 //!     Ok(bytes_written)
